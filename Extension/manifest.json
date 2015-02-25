@@ -6,7 +6,7 @@
     "tabs", "http://*/*", "https://*/*", "contextMenus", "storage"
   ],
   "browser_action": {
-      "default_title": “ConsumIt”,
+      "default_title": "ConsumIt",
       "default_popup": "popup.html"
   },
   "background": {
