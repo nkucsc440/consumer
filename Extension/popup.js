@@ -10,14 +10,12 @@ function saveLinks(e) {
 //creates a list of all saved links
 //may need to add pages to support lots of links
 function showLinks(e) {
-  var viewDiv = document.getElementById('viewLink');
-  viewDiv.removeEventListener('click', showLinks);
-  //viewDiv.addEventListener('click', hideLinks);
+  var viewDiv = document.getElementById('viewDiv');
   var linkList;
   chrome.storage.local.get('consumables', function(c){
     //console.log(JSON.stringify(c.consumables));
     linkList = '<ul>\n';
-    linkList += '<li><div><a href="" style="color:black" onclick="hideLinks">Close</a></div></li>\n';
+    linkList += '<li><div><span id="closeLink">Close</span></div></li>\n';
     for(link in c.consumables) {
       //console.log(c.consumables[link]);
       linkList += '<li><div><a href="'+c.consumables[link]+'">'+c.consumables[link]+'</a></div></li>\n';
@@ -25,14 +23,15 @@ function showLinks(e) {
     linkList += '</ul>\n';
     //console.log(linkList);
     viewDiv.innerHTML = linkList;
+    document.getElementById('closeLink').addEventListener('click', hideLinks);
   });
 }
 
 //close the list of links
 function hideLinks(e) {
-  var viewDiv = document.getElementById('viewLink');
-  viewDiv.addEventListener('click', showLinks);
-  viewDiv.innerHTML = "View Consumables";
+  var viewDiv = document.getElementById('viewDiv');
+  viewDiv.innerHTML = '<span id="viewLink">View Consumables</span>';
+  document.getElementById('viewLink').addEventListener('click', showLinks);
 }
 
 function saveLink(url) {
@@ -53,6 +52,6 @@ document.addEventListener('DOMContentLoaded', function () {
   var saveDiv = document.getElementById('saveLink');
   saveDiv.addEventListener('click', saveLinks);
   
-  var viewDiv = document.getElementById('viewLink');
-  viewDiv.addEventListener('click', showLinks);
+  var viewLink = document.getElementById('viewLink');
+  viewLink.addEventListener('click', showLinks);
 });
