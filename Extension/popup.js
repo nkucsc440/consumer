@@ -2,8 +2,7 @@
 function saveLinks(e) {
   chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
       //console.log('Saved: ' + tabs[0].url);
-      saveLink(tabs[0].url);
-      //window.close();
+      saveLink(tabs[0].url, window.close);
   });
 }
 
@@ -34,17 +33,19 @@ function hideLinks(e) {
   document.getElementById('viewLink').addEventListener('click', showLinks);
 }
 
-function saveLink(url) {
-  //chrome.storage.local.clear();
+function clearConsumables() {
+  chrome.storage.local.clear();
+}
+
+function saveLink(url, cb) {
   chrome.storage.local.get('consumables', function(c){
     if(!c.consumables)
       c.consumables = [];
     if(c.consumables.indexOf(url) === -1) //if the url is not already saved
       c.consumables.push(url); //save it
     chrome.storage.local.set({'consumables': c.consumables});//update the storage
-    //chrome.storage.local.get('consumables', function(c){
-      //console.log(JSON.stringify(c.consumables));
-    //});
+    if(cb)
+      cb();
   });
 }
 
@@ -54,4 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
   
   var viewLink = document.getElementById('viewLink');
   viewLink.addEventListener('click', showLinks);
+  
+  var viewLink = document.getElementById('clearLink');
+  viewLink.addEventListener('click', clearConsumables);
 });
