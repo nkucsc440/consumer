@@ -3,7 +3,12 @@
   "description": "ConsumIt is a resource manager which estimates how long it will take to consume some link",
   "version": "1.0",
   "permissions": [
-    "tabs", "http://*/*", "https://*/*", "contextMenus", "storage"
+    "tabs",
+    "http://*/*",
+    "https://*/*",
+    "contextMenus",
+    "storage",
+    "webNavigation"
   ],
   "browser_action": {
       "default_title": "ConsumIt",

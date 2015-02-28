@@ -37,7 +37,12 @@ function clearConsumables() {
   chrome.storage.local.clear();
 }
 
+function stripFragment(url) {
+  return url.split('#')[0];
+}
+
 function saveLink(url, cb) {
+  url = stripFragment(url);
   chrome.storage.local.get('consumables', function(c){
     if(!c.consumables)
       c.consumables = [];
