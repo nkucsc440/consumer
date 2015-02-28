@@ -77,32 +77,6 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
   });
 });
 
-//logic moved to onCommitted to support back button
-chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-  //console.log('onUpdated: ' + JSON.stringify(changeInfo));
-  //if going to a new page (in the current tab)
-/*   if(changeInfo.url && tab.active) {
-    if(stripFragment(changeInfo.url) !== prevTabUrl) {
-      //stop the timer on the previous page
-      if(tabTimes[prevTabUrl]) {
-        if(tabTimes[prevTabUrl].startTime) {
-          //stop it
-          stopTimer(prevTabUrl);
-        }
-      }
-      //start the timer for the new page (if saved)
-      chrome.storage.local.get('consumables', function(c){
-        if(c.consumables) {
-          if(c.consumables.indexOf(stripFragment(changeInfo.url)) !== -1) {
-            startTimer(stripFragment(changeInfo.url));
-            prevTabUrl = stripFragment(changeInfo.url);
-          }
-        }
-      });
-    }
-  } */
-});
-
 chrome.webNavigation.onCommitted.addListener(function(details) {
   //console.log(JSON.stringify(details));
   
