@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_blank">
+    <title>ConsumIt</title>
+    <style>
+    body {
+      overflow: hidden;
+      margin: 0px;
+      padding: 0px;
+    }
+    div {
+      cursor: pointer;
+      text-align: center;
+      font-family: sans-serif;
+      width: 200px;
+      background: #cccccc;
+    }
+    a {
+      text-decoration: none;
+    }
+    ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+    }
+    div:hover {
+      background: #aaaaaa;
+    }
+    </style>
+    <script src="popup.js"></script>
+  </head>
+  <body>
+    <div><span id="saveLink">Consume this page later</span></div>
+    <div id="viewDiv"><span id="viewLink">View Consumables</span></div>
+    <div><span id="clearLink">Clear all consumables (dev)</span></div>
+  </body>
+</html>
