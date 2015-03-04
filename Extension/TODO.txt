@@ -1,4 +1,0 @@
-1. Time how long it takes to read a page
-2. Report and check time using REST api
-3. Add consumable management page (organizing, deleting, etc)
-4. ???

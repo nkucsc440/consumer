@@ -61,6 +61,6 @@ document.addEventListener('DOMContentLoaded', function () {
   var viewLink = document.getElementById('viewLink');
   viewLink.addEventListener('click', showLinks);
   
-  var viewLink = document.getElementById('clearLink');
-  viewLink.addEventListener('click', clearConsumables);
+  var clearLink = document.getElementById('clearLink');
+  clearLink.addEventListener('click', clearConsumables);
 });
