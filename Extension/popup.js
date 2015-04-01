@@ -32,6 +32,7 @@ function showLinks(e) {
   });
 }
 
+// add credentials to all ajax calls
 function login() {
   var username = $('#username').val();
   var password = $('#password').val();
@@ -54,6 +55,7 @@ function login() {
   });
 }
 
+// create login form
 function loginUser(e) {
   var loginForm = '<input id="username" type="text" name="username" placeholder="Username">';
   loginForm += '<input id="password" type="password" name="password" placeholder="Password">';
