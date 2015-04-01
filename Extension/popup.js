@@ -19,7 +19,7 @@ function showLinks(e) {
     success: function(data, textStatus, jqXHR) {
         linkList= '<ul>';
         linkList += '<li><div><span id="closeLink">Close</span></div></li>';
-        console.log(data);
+        //console.log(data);
         for (var i in data.user._consumptions) {
           var consumption = data.user._consumptions[i];
           linkList += '<li><div><span id="'+consumption._id+'">'+consumption._consumable.url+'</span></div></li>';
@@ -29,9 +29,9 @@ function showLinks(e) {
         document.getElementById('viewDiv').innerHTML = linkList;
         //set listeners to links (for custom tab opening)
         //replicates an <a> with some more js added
-        for(var i in user._consumptions) {
+        for(var i in data.user._consumptions) {
           var consumption = data.user._consumptions[i];
-          document.getElementById(i).addEventListener('click', constructListener(consumption._id));
+          document.getElementById(consumption._id).addEventListener('click', constructListener(consumption._id));
         }
         document.getElementById('closeLink').addEventListener('click', hideLinks);
     },
