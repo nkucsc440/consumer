@@ -12,7 +12,30 @@ function saveLinks(e) {
 //may need to add pages to support lots of links
 function showLinks(e) {
   var linkList;
+
+  $.ajax({
+    method: 'get',
+    url: restServer+'me',
+    success: function(data, textStatus, jqXHR) {
+        linkList= '<ul>';
+        linkList += '<li><div><span id="closeLink">Close</span></div></li>';
+        for (var consumption in data.user._consumptions) {
+          linkList += '<li><div><span id="'+consumption._id+'">'+consumption._consumable.url+'</span></div></li>';
+        }
+        linkList += '</ul>';
+        //console.log(linkList);
+        document.getElementById('viewDiv').innerHTML = linkList;
+        //set listeners to links (for custom tab opening)
+        //replicates an <a> with some more js added
+        for(var consumption in user._consumptions) {
+          document.getElementById(i).addEventListener('click', constructListener(consumption._id));
+        }
+        document.getElementById('closeLink').addEventListener('click', hideLinks);
+    }
+  });
+
   chrome.storage.local.get('consumables', function(c){
+    return; // ignoring this for now to work on hitting the api
     //console.log(JSON.stringify(c.consumables));
     linkList = '<ul>\n';
     linkList += '<li><div><span id="closeLink">Close</span></div></li>\n';
