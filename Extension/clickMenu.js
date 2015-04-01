@@ -98,7 +98,7 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
   if(tabIds.indexOf(activeInfo.tabId) !== -1) {
     startTimer(watchedTabs[tabIds.indexOf(activeInfo.tabId)].url);
   }
-}); 
+});
 /////////////////////////////////////Ajax stuff//////////////////////////////////////////
 function sendRequest() {
   return;
@@ -113,7 +113,7 @@ function sendRequest() {
   }
   xmlhttp.open("GET", server+'users', true);
   xmlhttp.send();
-  
+
   var xmlhttppost = new XMLHttpRequest();
   xmlhttppost.open("POST", server+'users', true);
   xmlhttppost.onreadystatechange=function() {
@@ -125,6 +125,7 @@ function sendRequest() {
   var data = {
     user: {
       email: "shutupandjam@gmail.com",
+      password: "password",
       firstName: "Chaos",
       lastName: "Dunk"
     }
