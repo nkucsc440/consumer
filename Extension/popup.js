@@ -40,6 +40,18 @@ function login() {
   $.ajaxSetup({
     headers: { 'Authorization': 'Basic '+btoa(username+':'+password) },
   });
+
+  alert('testing login');
+  $.ajax({
+    method: 'get',
+    url: restServer+'me',
+    success: function(data, textStatus, jqXHR) {
+      alert('login success');
+    },
+    error: function(jqXHR, textStatus, errorThrown) {
+      alert(errorThrown);
+    }
+  });
 }
 
 function loginUser(e) {
