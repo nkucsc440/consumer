@@ -48,6 +48,12 @@ function login() {
     url: restServer+'me',
     success: function(data, textStatus, jqXHR) {
       alert('login success');
+      document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Logout</span>';
+      document.getElementById('loginLink').addEventListener('click', function() {
+        $.ajaxSetup({headers: {}});
+        document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Login</span>';
+        document.getElementById('loginLink').addEventListener('click', loginUser);
+      });
     },
     error: function(jqXHR, textStatus, errorThrown) {
       alert(errorThrown);
