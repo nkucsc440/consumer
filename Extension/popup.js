@@ -19,7 +19,9 @@ function showLinks(e) {
     success: function(data, textStatus, jqXHR) {
         linkList= '<ul>';
         linkList += '<li><div><span id="closeLink">Close</span></div></li>';
-        for (var consumption in data.user._consumptions) {
+        console.log(data);
+        for (var i in data.user._consumptions) {
+          var consumption = data.user._consumptions[i];
           linkList += '<li><div><span id="'+consumption._id+'">'+consumption._consumable.url+'</span></div></li>';
         }
         linkList += '</ul>';
@@ -27,10 +29,17 @@ function showLinks(e) {
         document.getElementById('viewDiv').innerHTML = linkList;
         //set listeners to links (for custom tab opening)
         //replicates an <a> with some more js added
-        for(var consumption in user._consumptions) {
+        for(var i in user._consumptions) {
+          var consumption = data.user._consumptions[i];
           document.getElementById(i).addEventListener('click', constructListener(consumption._id));
         }
         document.getElementById('closeLink').addEventListener('click', hideLinks);
+    },
+    error: function(jqXHR, textStatus, errorThrown) {
+      console.log('error: '+errorThrown);
+    },
+    complete: function(jqXHR, textStatus) {
+      console.log('complete: '+textStatus);
     }
   });
 
@@ -59,18 +68,18 @@ function showLinks(e) {
 function login() {
   var username = $('#username').val();
   var password = $('#password').val();
-  alert('beginning login');
+  console.log('beginning login');
 
   $.ajaxSetup({
     headers: { 'Authorization': 'Basic '+btoa(username+':'+password) },
   });
 
-  alert('testing login');
+  console.log('testing login');
   $.ajax({
     method: 'get',
     url: restServer+'me',
     success: function(data, textStatus, jqXHR) {
-      alert('login success');
+      console.log('login success');
       document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Logout</span>';
       document.getElementById('loginLink').addEventListener('click', function() {
         $.ajaxSetup({headers: {}});
@@ -79,7 +88,7 @@ function login() {
       });
     },
     error: function(jqXHR, textStatus, errorThrown) {
-      alert(errorThrown);
+      console.log(errorThrown);
     }
   });
 }
