@@ -1,3 +1,5 @@
+var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
+
 //gets the url of the current tab and saves the link
 function saveLinks(e) {
   chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
@@ -28,6 +30,24 @@ function showLinks(e) {
     }
     document.getElementById('closeLink').addEventListener('click', hideLinks);
   });
+}
+
+function login() {
+  var username = $('#username').val();
+  var password = $('#password').val();
+  alert('beginning login');
+
+  $.ajaxSetup({
+    headers: { 'Authorization': 'Basic '+btoa(username+':'+password) },
+  });
+}
+
+function loginUser(e) {
+  var loginForm = '<input id="username" type="text" name="username" placeholder="Username">';
+  loginForm += '<input id="password" type="password" name="password" placeholder="Password">';
+  loginForm += '<button id="loginBtn">Login</button>';
+  document.getElementById('loginDiv').innerHTML = loginForm;
+  document.getElementById('loginBtn').addEventListener('click', login);
 }
 
 //can't have a function that references an external variable so need to make one
@@ -71,10 +91,13 @@ function saveLink(url, cb) {
 document.addEventListener('DOMContentLoaded', function () {
   var saveDiv = document.getElementById('saveLink');
   saveDiv.addEventListener('click', saveLinks);
-  
+
   var viewLink = document.getElementById('viewLink');
   viewLink.addEventListener('click', showLinks);
-  
+
   var clearLink = document.getElementById('clearLink');
   clearLink.addEventListener('click', clearConsumables);
+
+  var loginLink = document.getElementById('loginLink');
+  loginLink.addEventListener('click', loginUser);
 });
