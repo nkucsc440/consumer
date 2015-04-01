@@ -31,7 +31,8 @@ function showLinks(e) {
         //replicates an <a> with some more js added
         for(var i in data.user._consumptions) {
           var consumption = data.user._consumptions[i];
-          document.getElementById(consumption._id).addEventListener('click', constructListener(consumption._id));
+          console.log(consumption._consumable.url);
+          document.getElementById(consumption._id).addEventListener('click', constructListener(consumption._consumable.url));
         }
         document.getElementById('closeLink').addEventListener('click', hideLinks);
     },
@@ -104,6 +105,7 @@ function loginUser(e) {
 
 //can't have a function that references an external variable so need to make one
 function constructListener(link) {
+  link = 'https://' + link + '/';//links no longer come with a full url
   var f = function(){
     chrome.tabs.create({ url: link }, function(tab) {
       chrome.runtime.sendMessage(tab);
