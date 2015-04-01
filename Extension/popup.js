@@ -9,21 +9,35 @@ function saveLinks(e) {
 //creates a list of all saved links
 //may need to add pages to support lots of links
 function showLinks(e) {
-  var viewDiv = document.getElementById('viewDiv');
   var linkList;
   chrome.storage.local.get('consumables', function(c){
     //console.log(JSON.stringify(c.consumables));
     linkList = '<ul>\n';
     linkList += '<li><div><span id="closeLink">Close</span></div></li>\n';
-    for(link in c.consumables) {
+    for(var i in c.consumables) {
       //console.log(c.consumables[link]);
-      linkList += '<li><div><a href="'+c.consumables[link]+'">'+c.consumables[link]+'</a></div></li>\n';
+      linkList += '<li><div><span id="'+i+'">'+i+'</span></div></li>\n';
     }
     linkList += '</ul>\n';
     //console.log(linkList);
-    viewDiv.innerHTML = linkList;
+    document.getElementById('viewDiv').innerHTML = linkList;
+    //set listeners to links (for custom tab opening)
+    //replicates an <a> with some more js added
+    for(var i in c.consumables) {
+      document.getElementById(i).addEventListener('click', constructListener(i));
+    }
     document.getElementById('closeLink').addEventListener('click', hideLinks);
   });
+}
+
+//can't have a function that references an external variable so need to make one
+function constructListener(link) {
+  var f = function(){
+    chrome.tabs.create({ url: link }, function(tab) {
+      chrome.runtime.sendMessage(tab);
+    });
+  }
+  return f;
 }
 
 //close the list of links
@@ -45,9 +59,9 @@ function saveLink(url, cb) {
   url = stripFragment(url);
   chrome.storage.local.get('consumables', function(c){
     if(!c.consumables)
-      c.consumables = [];
-    if(c.consumables.indexOf(url) === -1) //if the url is not already saved
-      c.consumables.push(url); //save it
+      c.consumables = {};
+    if(!c.consumables[url]) //if the url is not already saved
+      c.consumables[url] = {}; //save it
     chrome.storage.local.set({'consumables': c.consumables});//update the storage
     if(cb)
       cb();

@@ -21,9 +21,25 @@ function saveLink(url, cb) {
   url = stripFragment(url);
   chrome.storage.local.get('consumables', function(c){
     if(!c.consumables)
-      c.consumables = [];
-    if(c.consumables.indexOf(url) === -1) //if the url is not already saved
-      c.consumables.push(url); //save it
+      c.consumables = {};
+    if(!c.consumables[url]) //if the url is not already saved
+      c.consumables[url] = {}; //save it
+    chrome.storage.local.set({'consumables': c.consumables});//update the storage
+    if(cb)
+      cb();
+  });
+}
+
+function saveTime(url, time, cb) {
+  chrome.storage.local.get('consumables', function(c){
+    if(c.consumables[url] !== -1){
+      if(c.consumables[url].totalTime) {
+        c.consumables[url].totalTime += time;
+      }
+      else {
+        c.consumables[url].totalTime = time;
+      }
+    }
     chrome.storage.local.set({'consumables': c.consumables});//update the storage
     if(cb)
       cb();
@@ -33,7 +49,9 @@ function saveLink(url, cb) {
 //////////////////////////////// Consume Timer Script ///////////////////////////////////////////////
 
 var tabTimes = {};
-var prevTabUrl = '';
+var tabIds = [];
+var watchedTabs = [];
+var prevTabId = -1;
 
 //creates the start time
 function startTimer(tabUrl) {
@@ -41,7 +59,7 @@ function startTimer(tabUrl) {
   if(!tabTimes[tabUrl])
     tabTimes[tabUrl] = {};
   tabTimes[tabUrl].startTime = d.getTime();
-  //console.log(JSON.stringify(tabTimes));
+  //console.log(tabTimes);
 }
 
 //stops timer and deletes the startTime property
@@ -50,60 +68,67 @@ function stopTimer(tabUrl) {
   if(!tabTimes[tabUrl].totalTime)
     tabTimes[tabUrl].totalTime = 0;
   tabTimes[tabUrl].totalTime += d.getTime() - tabTimes[tabUrl].startTime;
+  var time = d.getTime() - tabTimes[tabUrl].startTime;
+  saveTime(tabUrl, time, function(){
+    chrome.storage.local.get('consumables', function(c){
+      console.log(c);
+    });
+  });
   delete tabTimes[tabUrl].startTime;
-  console.log(JSON.stringify(tabTimes));
 }
 
-chrome.tabs.onActivated.addListener(function(activeInfo) {
-  //console.log('onActivated: ' + JSON.stringify(activeInfo));
-  //if active tab is changed and timer is running
-  if(tabTimes[prevTabUrl]) {
-    if(tabTimes[prevTabUrl].startTime) {
-      //stop it
-      stopTimer(prevTabUrl);
-    }
-  }
-  chrome.storage.local.get('consumables', function(c){
-    if(c.consumables) {
-      //may give an error when tabs are closed quickly
-      //doesn't break anything though
-      chrome.tabs.get(activeInfo.tabId, function(tab) {
-        if(c.consumables.indexOf(stripFragment(tab.url)) !== -1) {
-          startTimer(stripFragment(tab.url));
-          prevTabUrl = stripFragment(tab.url);
-        }
-      });
-    }
-  });
+chrome.runtime.onMessage.addListener(function(tab, sender) {
+  watchedTabs.push(tab);
+  tabIds.push(tab.id);
+  startTimer(tab.url);
+  sendRequest();
 });
 
-chrome.webNavigation.onCommitted.addListener(function(details) {
-  //console.log(JSON.stringify(details));
-  
-  //if going to a new page (in the current tab)
-  chrome.tabs.get(details.tabId, function(tab) {
-    if(details.url && tab.active) {
-      if(stripFragment(details.url) !== prevTabUrl) {
-        
-        //stop the timer on the previous page
-        if(tabTimes[prevTabUrl]) {
-          if(tabTimes[prevTabUrl].startTime) {
-            //stop it
-            stopTimer(prevTabUrl);
-          }
-        }
-        
-        //start the timer for the new page (if saved)
-        chrome.storage.local.get('consumables', function(c){
-          if(c.consumables) {
-            if(c.consumables.indexOf(stripFragment(details.url)) !== -1) {
-              startTimer(stripFragment(details.url));
-            }
-          }
-        });
-        
-        prevTabUrl = stripFragment(details.url);
-      }
-    }
-  });
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+  if(tabIds.indexOf(tabId) !== -1) {
+    //console.log(tab);
+  }
 });
+
+chrome.tabs.onActivated.addListener(function(activeInfo) {
+  if(tabIds.indexOf(prevTabId) !== -1) {
+    stopTimer(watchedTabs[tabIds.indexOf(prevTabId)].url);
+  }
+  prevTabId = activeInfo.tabId;
+  if(tabIds.indexOf(activeInfo.tabId) !== -1) {
+    startTimer(watchedTabs[tabIds.indexOf(activeInfo.tabId)].url);
+  }
+}); 
+/////////////////////////////////////Ajax stuff//////////////////////////////////////////
+function sendRequest() {
+  return;
+  var server = 'https://consumit-rest-nodejs.herokuapp.com/api/';
+
+  var xmlhttp = new XMLHttpRequest();
+  xmlhttp.onreadystatechange=function() {
+    if (xmlhttp.readyState==4 && xmlhttp.status==200) {
+      var response = JSON.parse(xmlhttp.response);
+      //console.log(response);
+    }
+  }
+  xmlhttp.open("GET", server+'users', true);
+  xmlhttp.send();
+  
+  var xmlhttppost = new XMLHttpRequest();
+  xmlhttppost.open("POST", server+'users', true);
+  xmlhttppost.onreadystatechange=function() {
+    if (xmlhttppost.readyState==4 && xmlhttppost.status==200) {
+      var response = JSON.parse(xmlhttppost.response);
+      console.log(response);
+    }
+  }
+  var data = {
+    user: {
+      email: "shutupandjam@gmail.com",
+      firstName: "Chaos",
+      lastName: "Dunk"
+    }
+  }
+  xmlhttppost.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  xmlhttppost.send(JSON.stringify(data));
+}
