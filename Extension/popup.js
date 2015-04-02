@@ -28,7 +28,7 @@ function showLinks(e) {
           //console.log(data);
           for (var i in data.user._consumptions) {
             var consumption = data.user._consumptions[i];
-            linkList += '<li><div><span id="'+consumption._id+'">'+consumption._consumable.url+'</span></div></li>';
+            linkList += '<li><div><span class="fakeA" id="'+consumption._id+'">'+consumption._consumable.url+'</span></div></li>';
           }
           linkList += '</ul>';
           //console.log(linkList);
@@ -116,7 +116,7 @@ function closeLogin(e) {
 
 //can't have a function that references an external variable so need to make one
 function constructListener(link) {
-  link = 'https://' + link + '/';//links no longer come with a full url
+  link = 'http://' + link;//links no longer come with a full url
   var f = function(){
     chrome.tabs.create({ url: link }, function(tab) {
       chrome.runtime.sendMessage({tab: tab});
@@ -202,14 +202,13 @@ function addConsumable(uid, cid, cb) {
       }
     },
     success: function(data, textStatus, jqXHR) {
-      console.log(data);
-      return;
       cb();
     }
   });
 }
 
 function findUrl(url, consumables) {
+  url = url.replace(/.*?:\/\//g, "");
   for(var i in consumables) {
     if(consumables[i].url === url)
       return i;
@@ -231,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
     chrome.tabs.query({currentWindow: true, active: true}, function(currentTab){
         currentTab = currentTab[0];//only 1 active tab, but still array for some reason
         getActiveTabs(function(tabs){
-          console.log(containsTab(currentTab, tabs));
+          //console.log(containsTab(currentTab, tabs));
           if(containsTab(currentTab, tabs)) {
             document.getElementById('main').innerHTML = '<div id="consumeDiv"><span id="consumeLink">Done consuming</span></div>' + document.getElementById('main').innerHTML;
           }
@@ -247,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('loginLink').addEventListener('click', logoutUser);
           }
           if(containsTab(currentTab, tabs)) {
-            document.getElementById('saveLink').addEventListener('click', saveLinks);
+            document.getElementById('consumeLink').addEventListener('click', consumeLink);
           }
           else {
             document.getElementById('saveLink').addEventListener('click', saveLinks);
@@ -258,3 +257,43 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 });
+
+function consumeLink(e) {
+  chrome.tabs.query({currentWindow: true, active: true}, function(currentTab){
+    currentTab = currentTab[0];
+    chrome.runtime.sendMessage({getTime: currentTab.url}, function(time){
+      chrome.storage.local.get('user', function(c){
+        $.ajax({
+          method: 'get',
+          url: restServer+'consumables/',
+          success: function(data, textStatus, jqXHR) {
+            //actual code starts here
+            var cid = data.consumables[findUrl(currentTab.url, data.consumables)]._id;
+            $.ajax({
+              url: restServer+'consumptions/',
+              method: 'put',
+              dataType: 'json',
+              data: {
+                consumption: {
+                  _user: c.user.uid,
+                  _consumable: cid,
+                  consumeTime: time
+                }
+              },
+              success: function(data, textStatus, jqXHR) {
+                console.log(data);
+              }
+            });
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            console.log('error: '+errorThrown);
+          },
+          complete: function(jqXHR, textStatus) {
+            console.log('complete: '+textStatus);
+            //window.close();
+          }
+        });
+      });
+    });
+  });
+}

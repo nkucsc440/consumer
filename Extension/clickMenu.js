@@ -121,6 +121,7 @@ var prevTabId = -1;
 
 //creates the start time
 function startTimer(tabUrl) {
+  tabUrl = tabUrl.replace(/.*?:\/\//g, "");
   var d = new Date();
   if(!tabTimes[tabUrl])
     tabTimes[tabUrl] = {};
@@ -129,6 +130,7 @@ function startTimer(tabUrl) {
 
 //stops timer and deletes the startTime property
 function stopTimer(tabUrl) {
+  tabUrl = tabUrl.replace(/.*?:\/\//g, "");
   var d = new Date();
   if(!tabTimes[tabUrl].totalTime)
     tabTimes[tabUrl].totalTime = 0;
@@ -151,6 +153,13 @@ chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
   }
   if(msg.getActive) {
     cb(watchedTabs);
+  }
+  if(msg.getTime) {
+    msg.getTime = msg.getTime.replace(/.*?:\/\//g, "");
+    if(tabTimes[msg.getTime].startTime) {
+      stopTimer(msg.getTime);
+    }
+    cb(tabTimes[msg.getTime].totalTime);
   }
 });
 
