@@ -25,7 +25,7 @@ function showLinks(e) {
           var linkList;
           linkList= '<ul>';
           linkList += '<li><div><span id="closeLink">Close</span></div></li>';
-          console.log(data);
+          //console.log(data);
           for (var i in data.user._consumptions) {
             var consumption = data.user._consumptions[i];
             linkList += '<li><div><span id="'+consumption._id+'">'+consumption._consumable.url+'</span></div></li>';
@@ -37,7 +37,7 @@ function showLinks(e) {
           //replicates an <a> with some more js added
           for(var i in data.user._consumptions) {
             var consumption = data.user._consumptions[i];
-            console.log(consumption._consumable.url);
+            //console.log(consumption._consumable.url);
             document.getElementById(consumption._id).addEventListener('click', constructListener(consumption._consumable.url));
           }
           document.getElementById('closeLink').addEventListener('click', hideLinks);
@@ -119,10 +119,16 @@ function constructListener(link) {
   link = 'https://' + link + '/';//links no longer come with a full url
   var f = function(){
     chrome.tabs.create({ url: link }, function(tab) {
-      chrome.runtime.sendMessage(tab);
+      chrome.runtime.sendMessage({tab: tab});
     });
   }
   return f;
+}
+
+function getActiveTabs(cb) {
+  chrome.runtime.sendMessage({getActive: true}, function(tabs){
+    cb(tabs);
+  });
 }
 
 //close the list of links
@@ -211,24 +217,44 @@ function findUrl(url, consumables) {
   return false;
 }
 
+function containsTab(tab, tabs) {
+  for(var i in tabs) {
+    if(tabs[i].id === tab.id)
+      return i;
+  }
+  return false;
+}
+
+//very messy because listeners must be added after page is modified
 document.addEventListener('DOMContentLoaded', function () {  
   chrome.storage.local.get('user', function(c){
-    if(!c) { //if not logged in
-      document.body.innerHTML += '<div id="loginDiv"><span id="loginLink">Login</span></div>';
-      document.getElementById('loginLink').addEventListener('click', loginUser);
-    }
-    else {
-      document.body.innerHTML += '<div id="loginDiv"><span id="loginLink">Logout</span></div>';
-      document.getElementById('loginLink').addEventListener('click', logoutUser);
-    }
-    
-    var saveDiv = document.getElementById('saveLink');
-    saveDiv.addEventListener('click', saveLinks);
-
-    var viewLink = document.getElementById('viewLink');
-    viewLink.addEventListener('click', showLinks);
-
-    var clearLink = document.getElementById('clearLink');
-    clearLink.addEventListener('click', clearConsumables);
+    chrome.tabs.query({currentWindow: true, active: true}, function(currentTab){
+        currentTab = currentTab[0];//only 1 active tab, but still array for some reason
+        getActiveTabs(function(tabs){
+          console.log(containsTab(currentTab, tabs));
+          if(containsTab(currentTab, tabs)) {
+            document.getElementById('main').innerHTML = '<div id="consumeDiv"><span id="consumeLink">Done consuming</span></div>' + document.getElementById('main').innerHTML;
+          }
+          else {
+            document.getElementById('main').innerHTML = '<div><span id="saveLink">Consume this page later</span></div>' + document.getElementById('main').innerHTML;
+          }
+          if(!c.user) { //if not logged in
+            document.getElementById('main').innerHTML += '<div id="loginDiv"><span id="loginLink">Login</span></div>';
+            document.getElementById('loginLink').addEventListener('click', loginUser);
+          }
+          else {
+            document.getElementById('main').innerHTML += '<div id="loginDiv"><span id="loginLink">Logout</span></div>';
+            document.getElementById('loginLink').addEventListener('click', logoutUser);
+          }
+          if(containsTab(currentTab, tabs)) {
+            document.getElementById('saveLink').addEventListener('click', saveLinks);
+          }
+          else {
+            document.getElementById('saveLink').addEventListener('click', saveLinks);
+          }
+          document.getElementById('viewLink').addEventListener('click', showLinks);
+          //document.getElementById('clearLink').addEventListener('click', clearConsumables);
+        });
+    });
   });
 });

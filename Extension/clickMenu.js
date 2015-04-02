@@ -136,17 +136,22 @@ function stopTimer(tabUrl) {
   var time = d.getTime() - tabTimes[tabUrl].startTime;
   saveTime(tabUrl, time, function(){
     chrome.storage.local.get('consumables', function(c){
-      return;
-      //console.log(c);
+      console.log(c);
     });
   });
   delete tabTimes[tabUrl].startTime;
 }
 
-chrome.runtime.onMessage.addListener(function(tab, sender) {
-  watchedTabs.push(tab);
-  tabIds.push(tab.id);
-  startTimer(tab.url);
+chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
+  if(msg.tab) {
+    tab = msg.tab;
+    watchedTabs.push(tab);
+    tabIds.push(tab.id);
+    startTimer(tab.url);
+  }
+  if(msg.getActive) {
+    cb(watchedTabs);
+  }
 });
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
