@@ -75,6 +75,7 @@ function login() {
           c.uid = data.user._id;
         }
         chrome.storage.local.set({'user': c});//update the storage
+        loginToUser(user, pass);
       });
 
       document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Logout</span>';
@@ -83,6 +84,25 @@ function login() {
     error: function(jqXHR, textStatus, errorThrown) {
       console.log(errorThrown);
     }
+  });
+}
+
+//Also need to login to user specific page
+function loginToUser(user, pass) {
+  chrome.storage.local.get('user', function(c){
+    $.ajaxSetup({
+      headers: { 'Authorization': 'Basic '+btoa(username+':'+password) },
+    });
+    $.ajax({
+      method: 'get',
+      url: restServer+'users/'+c.user.uid,
+      success: function(data, textStatus, jqXHR) {  
+        console.log('logged into user page');
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log(errorThrown);
+      }
+    });
   });
 }
 
