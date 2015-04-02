@@ -139,7 +139,7 @@ function testLogin() {
 
 function logoutUser(e) {
   $.ajaxSetup({headers: {}});
-  document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Login</span>';
+  document.getElementById('loginLogoutDiv').innerHTML = '<span id="loginLink">Login</span>';
   document.getElementById('loginLink').addEventListener('click', loginUser);
   clearConsumables();
 }
@@ -149,14 +149,13 @@ function loginUser(e) {
   var loginForm = '<input id="username" type="text" name="username" placeholder="Username">';
   loginForm += '<input id="password" type="password" name="password" placeholder="Password">';
   loginForm += '<button id="loginBtn">Login</button>';
-  document.getElementById('loginDiv').innerHTML += loginForm;
+  document.getElementById('loginLogoutDiv').innerHTML += loginForm;
   document.getElementById('loginBtn').addEventListener('click', login);
   var loginLink = document.getElementById('loginLink');
   loginLink.removeEventListener('click', loginUser);
   loginLink.addEventListener('click', closeLogin);
 }
 
->>>>>>> 2d2c3443978607e7139afe545779ce318fbe9bc6
 function closeLogin(e) {
   var loginLogoutDiv = document.getElementById('loginLogoutDiv');
   loginLogoutDiv.innerHTML = '<div id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>';
