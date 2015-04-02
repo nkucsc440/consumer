@@ -11,8 +11,6 @@ function saveLinks(e) {
 //creates a list of all saved links
 //may need to add pages to support lots of links
 function showLinks(e) {
-  var linkList;
-
   chrome.storage.local.get('user', function(c) {
     if(!c.user) {
       document.getElementById('viewDiv').innerHTML = '<div><span id="closeLink">Close</span></div>';
@@ -24,6 +22,7 @@ function showLinks(e) {
       method: 'get',
       url: restServer+'users/'+c.user.uid,
       success: function(data, textStatus, jqXHR) {
+          var linkList;
           linkList= '<ul>';
           linkList += '<li><div><span id="closeLink">Close</span></div></li>';
           console.log(data);
@@ -143,14 +142,25 @@ function stripFragment(url) {
 
 function saveLink(url, cb) {
   url = stripFragment(url);
-  chrome.storage.local.get('consumables', function(c){
-    if(!c.consumables)
-      c.consumables = {};
-    if(!c.consumables[url]) //if the url is not already saved
-      c.consumables[url] = {}; //save it
-    chrome.storage.local.set({'consumables': c.consumables});//update the storage
-    if(cb)
-      cb();
+  url = url.replace(/.*?:\/\//g, "");
+  
+  chrome.storage.local.get('user', function(c) {
+    if(!c.user)
+      return;//no user, don't save
+    //console.log(restServer+'users/'+c.user.uid);
+    $.ajax({
+      method: 'GET',
+      url: restServer+'users/'+c.user.uid,
+      success: function(data, textStatus, jqXHR) {
+        //push url into user consumables
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log('error: '+errorThrown);
+      },
+      complete: function(jqXHR, textStatus) {
+        console.log('complete: '+textStatus);
+      }
+    });
   });
 }
 
