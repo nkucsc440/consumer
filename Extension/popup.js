@@ -19,7 +19,7 @@ function showLinks(e) {
     success: function(data, textStatus, jqXHR) {
         linkList= '<ul>';
         linkList += '<li><div><span id="closeLink">Close</span></div></li>';
-        //console.log(data);
+        console.log(data);
         for (var i in data.user._consumptions) {
           var consumption = data.user._consumptions[i];
           linkList += '<li><div><span id="'+consumption._id+'">'+consumption._consumable.url+'</span></div></li>';
@@ -99,8 +99,18 @@ function loginUser(e) {
   var loginForm = '<input id="username" type="text" name="username" placeholder="Username">';
   loginForm += '<input id="password" type="password" name="password" placeholder="Password">';
   loginForm += '<button id="loginBtn">Login</button>';
-  document.getElementById('loginDiv').innerHTML = loginForm;
+  var loginLink = document.getElementById('loginLink');
+  loginLink.removeEventListener('click', loginUser);
+  loginLink.addEventListener('click', closeLogin);
+  loginLink.innerHTML += loginForm;
   document.getElementById('loginBtn').addEventListener('click', login);
+}
+
+function closeLogin(e) {
+  var loginLink = document.getElementById('loginLink');
+  loginLink.removeEventListener('click', closeLogin);
+  loginLink.addEventListener('click', loginUser);
+  loginLink.innerHTML = '<div id="loginDiv"><span id="loginLink">Login (dev)</span></div>';
 }
 
 //can't have a function that references an external variable so need to make one

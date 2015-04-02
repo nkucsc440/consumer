@@ -32,6 +32,8 @@ function saveLink(url, cb) {
 
 function saveTime(url, time, cb) {
   chrome.storage.local.get('consumables', function(c){
+    if(!c.consumables)
+      c.consumables = {};
     if(c.consumables[url]){
       if(c.consumables[url].totalTime) {
         c.consumables[url].totalTime += time;
@@ -74,7 +76,8 @@ function stopTimer(tabUrl) {
   var time = d.getTime() - tabTimes[tabUrl].startTime;
   saveTime(tabUrl, time, function(){
     chrome.storage.local.get('consumables', function(c){
-      console.log(c);
+      return;
+      //console.log(c);
     });
   });
   delete tabTimes[tabUrl].startTime;
