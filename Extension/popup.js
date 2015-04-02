@@ -106,9 +106,6 @@ function testLogin() {
         c.user = responseData.user;
         chrome.storage.local.set(c);//update the storage
         updateActionItems();
-
-        // chrome.storage.local.set({'user': c});//update the storage
-        // loginToUser(user, pass);
       });
     },
     error: function(jqXHR, textStatus, errorThrown) {
@@ -118,45 +115,6 @@ function testLogin() {
   });
 }
 
-//Also need to login to user specific page
-// function loginToUser(user, pass) {
-//   chrome.storage.local.get('user', function(c){
-//     $.ajaxSetup({
-//       headers: { 'Authorization': 'Basic '+btoa(username+':'+password) },
-//     });
-//     $.ajax({
-//       method: 'get',
-//       url: restServer+'users/'+c.user.uid,
-//       success: function(data, textStatus, jqXHR) {
-//         console.log('logged into user page');
-//       },
-//       error: function(jqXHR, textStatus, errorThrown) {
-//         console.log(errorThrown);
-//       }
-//     });
-//   });
-// }
-
-function logoutUser(e) {
-  $.ajaxSetup({headers: {}});
-  document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Login</span>';
-  document.getElementById('loginLink').addEventListener('click', loginUser);
-  clearConsumables();
-}
-
-// create login form
-function loginUser(e) {
-  var loginForm = '<input id="username" type="text" name="username" placeholder="Username">';
-  loginForm += '<input id="password" type="password" name="password" placeholder="Password">';
-  loginForm += '<button id="loginBtn">Login</button>';
-  document.getElementById('loginDiv').innerHTML += loginForm;
-  document.getElementById('loginBtn').addEventListener('click', login);
-  var loginLink = document.getElementById('loginLink');
-  loginLink.removeEventListener('click', loginUser);
-  loginLink.addEventListener('click', closeLogin);
-}
-
->>>>>>> 2d2c3443978607e7139afe545779ce318fbe9bc6
 function closeLogin(e) {
   var loginLogoutDiv = document.getElementById('loginLogoutDiv');
   loginLogoutDiv.innerHTML = '<div id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>';
@@ -333,14 +291,6 @@ function consumeLink(e) {
             }),
           error: function (jqXHR, textStatus, errorThrown) {
             console.log('error: '+errorThrown);
-          },
-          success: function(data, textStatus, jqXHR) {
-            document.getElementById('consumeDiv').innerHTML = '\
-            <a href="mailto:?subject=See what I read using ConsumIt;body=Check out this site:'
-            + currentTab.url + ' '
-            + 'title="Share by Email">\
-              Share this page!\
-            </a>';
           },
           complete: function (jqXHR, textStatus) {
             console.log('complete: '+textStatus);
