@@ -27,8 +27,11 @@ function showLinks() {
     //console.log(data);
     for (var i in user._consumptions) {
       var consumption = user._consumptions[i];
-      linkList += '<li id="'+consumption._id+'" data-url="'+consumption._consumable.url+'" class="consumption">'+consumption._consumable.url
-                + '<br>'+(consumption.consumeTime/1000)+'s</li>';
+      linkList += '<li id="' + consumption._id + '" data-url="' + consumption._consumable.url + '" class="consumption">' + consumption._consumable.url;
+      if (consumption.consumeTime) {
+        linkList += '<br>' + (consumption.consumeTime / 1000) + 's';
+        linkList += '<br><A HREF="mailto:mclain.calvin@gmail.com?Subject=ConsumIt%21&Body=Check%20this%20out%21">Share</A>' + '</li>';
+      }
     }
     linkList += '</ul>';
     //console.log(linkList);
