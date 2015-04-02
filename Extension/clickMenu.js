@@ -32,13 +32,17 @@ function saveLink(url, cb) {
 
 function saveTime(url, time, cb) {
   chrome.storage.local.get('consumables', function(c){
-    if(c.consumables[url] !== -1){
+    if(c.consumables[url]){
       if(c.consumables[url].totalTime) {
         c.consumables[url].totalTime += time;
       }
       else {
         c.consumables[url].totalTime = time;
       }
+    }
+    else{
+      c.consumables[url] = {};
+      c.consumables[url].totalTime = time;
     }
     chrome.storage.local.set({'consumables': c.consumables});//update the storage
     if(cb)
@@ -59,7 +63,6 @@ function startTimer(tabUrl) {
   if(!tabTimes[tabUrl])
     tabTimes[tabUrl] = {};
   tabTimes[tabUrl].startTime = d.getTime();
-  //console.log(tabTimes);
 }
 
 //stops timer and deletes the startTime property
@@ -81,7 +84,6 @@ chrome.runtime.onMessage.addListener(function(tab, sender) {
   watchedTabs.push(tab);
   tabIds.push(tab.id);
   startTimer(tab.url);
-  sendRequest();
 });
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
@@ -99,37 +101,3 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
     startTimer(watchedTabs[tabIds.indexOf(activeInfo.tabId)].url);
   }
 });
-/////////////////////////////////////Ajax stuff//////////////////////////////////////////
-function sendRequest() {
-  return;
-  var server = 'https://consumit-rest-nodejs.herokuapp.com/api/';
-
-  var xmlhttp = new XMLHttpRequest();
-  xmlhttp.onreadystatechange=function() {
-    if (xmlhttp.readyState==4 && xmlhttp.status==200) {
-      var response = JSON.parse(xmlhttp.response);
-      //console.log(response);
-    }
-  }
-  xmlhttp.open("GET", server+'users', true);
-  xmlhttp.send();
-
-  var xmlhttppost = new XMLHttpRequest();
-  xmlhttppost.open("POST", server+'users', true);
-  xmlhttppost.onreadystatechange=function() {
-    if (xmlhttppost.readyState==4 && xmlhttppost.status==200) {
-      var response = JSON.parse(xmlhttppost.response);
-      console.log(response);
-    }
-  }
-  var data = {
-    user: {
-      email: "shutupandjam@gmail.com",
-      password: "password",
-      firstName: "Chaos",
-      lastName: "Dunk"
-    }
-  }
-  xmlhttppost.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-  xmlhttppost.send(JSON.stringify(data));
-}
