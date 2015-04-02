@@ -81,11 +81,10 @@ function login() {
     url: restServer+'me',
     success: function(data, textStatus, jqXHR) {
       console.log('login success');
-      document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Logout</span>';
+      document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Logout (dev)</span>';
       document.getElementById('loginLink').addEventListener('click', function() {
         $.ajaxSetup({headers: {}});
-        document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Login</span>';
-        document.getElementById('loginLink').addEventListener('click', loginUser);
+        logoutUser();
       });
     },
     error: function(jqXHR, textStatus, errorThrown) {
@@ -94,23 +93,30 @@ function login() {
   });
 }
 
+function logoutUser() {
+  document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Login (dev)</span>';
+  document.getElementById('loginLink').addEventListener('click', loginUser);
+}
+
 // create login form
 function loginUser(e) {
   var loginForm = '<input id="username" type="text" name="username" placeholder="Username">';
   loginForm += '<input id="password" type="password" name="password" placeholder="Password">';
   loginForm += '<button id="loginBtn">Login</button>';
+  document.getElementById('loginDiv').innerHTML += loginForm;
+  document.getElementById('loginBtn').addEventListener('click', login);
   var loginLink = document.getElementById('loginLink');
   loginLink.removeEventListener('click', loginUser);
   loginLink.addEventListener('click', closeLogin);
-  loginLink.innerHTML += loginForm;
-  document.getElementById('loginBtn').addEventListener('click', login);
 }
 
 function closeLogin(e) {
+  var loginDiv = document.getElementById('loginDiv');
+  loginDiv.innerHTML = '<div id="loginDiv"><span id="loginLink">Login (dev)</span></div>';
+  
   var loginLink = document.getElementById('loginLink');
   loginLink.removeEventListener('click', closeLogin);
   loginLink.addEventListener('click', loginUser);
-  loginLink.innerHTML = '<div id="loginDiv"><span id="loginLink">Login (dev)</span></div>';
 }
 
 //can't have a function that references an external variable so need to make one
