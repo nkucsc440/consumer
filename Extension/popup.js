@@ -281,7 +281,13 @@ function consumeLink(e) {
                 }
               },
               success: function(data, textStatus, jqXHR) {
-                console.log(data);
+                document.getElementById('consumeDiv').innerHTML = '\
+                <a href="mailto:?subject=See what I read using ConsumIt;body=Check out this site:'
+                + currentTab.url + ' '
+                + 'title="Share by Email">\
+                  Share this page!\
+                </a>';
+                //window.close();
               }
             });
           },
@@ -289,8 +295,7 @@ function consumeLink(e) {
             console.log('error: '+errorThrown);
           },
           complete: function(jqXHR, textStatus) {
-            console.log('complete: '+textStatus);
-            //window.close();
+            
           }
         });
       });
