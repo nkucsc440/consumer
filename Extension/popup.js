@@ -106,9 +106,6 @@ function testLogin() {
         c.user = responseData.user;
         chrome.storage.local.set(c);//update the storage
         updateActionItems();
-
-        // chrome.storage.local.set({'user': c});//update the storage
-        // loginToUser(user, pass);
       });
     },
     error: function(jqXHR, textStatus, errorThrown) {
@@ -118,6 +115,7 @@ function testLogin() {
   });
 }
 
+<<<<<<< HEAD
 //Also need to login to user specific page
 // function loginToUser(user, pass) {
 //   chrome.storage.local.get('user', function(c){
@@ -156,6 +154,8 @@ function loginUser(e) {
   loginLink.addEventListener('click', closeLogin);
 }
 
+=======
+>>>>>>> origin/master
 function closeLogin(e) {
   var loginLogoutDiv = document.getElementById('loginLogoutDiv');
   loginLogoutDiv.innerHTML = '<div id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>';
@@ -332,14 +332,6 @@ function consumeLink(e) {
             }),
           error: function (jqXHR, textStatus, errorThrown) {
             console.log('error: '+errorThrown);
-          },
-          success: function(data, textStatus, jqXHR) {
-            document.getElementById('consumeDiv').innerHTML = '\
-            <a href="mailto:?subject=See what I read using ConsumIt;body=Check out this site:'
-            + currentTab.url + ' '
-            + 'title="Share by Email">\
-              Share this page!\
-            </a>';
           },
           complete: function (jqXHR, textStatus) {
             console.log('complete: '+textStatus);
