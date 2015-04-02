@@ -13,55 +13,43 @@ function saveLinks(e) {
 function showLinks(e) {
   var linkList;
 
-  $.ajax({
-    method: 'get',
-    url: restServer+'me',
-    success: function(data, textStatus, jqXHR) {
-        linkList= '<ul>';
-        linkList += '<li><div><span id="closeLink">Close</span></div></li>';
-        console.log(data);
-        for (var i in data.user._consumptions) {
-          var consumption = data.user._consumptions[i];
-          linkList += '<li><div><span id="'+consumption._id+'">'+consumption._consumable.url+'</span></div></li>';
-        }
-        linkList += '</ul>';
-        //console.log(linkList);
-        document.getElementById('viewDiv').innerHTML = linkList;
-        //set listeners to links (for custom tab opening)
-        //replicates an <a> with some more js added
-        for(var i in data.user._consumptions) {
-          var consumption = data.user._consumptions[i];
-          console.log(consumption._consumable.url);
-          document.getElementById(consumption._id).addEventListener('click', constructListener(consumption._consumable.url));
-        }
-        document.getElementById('closeLink').addEventListener('click', hideLinks);
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      console.log('error: '+errorThrown);
-    },
-    complete: function(jqXHR, textStatus) {
-      console.log('complete: '+textStatus);
+  chrome.storage.local.get('user', function(c) {
+    if(!c.user) {
+      document.getElementById('viewDiv').innerHTML = '<div><span id="closeLink">Close</span></div>';
+      document.getElementById('closeLink').addEventListener('click', hideLinks);
+      return;
     }
-  });
-
-  chrome.storage.local.get('consumables', function(c){
-    return; // ignoring this for now to work on hitting the api
-    //console.log(JSON.stringify(c.consumables));
-    linkList = '<ul>\n';
-    linkList += '<li><div><span id="closeLink">Close</span></div></li>\n';
-    for(var i in c.consumables) {
-      //console.log(c.consumables[link]);
-      linkList += '<li><div><span id="'+i+'">'+i+'</span></div></li>\n';
-    }
-    linkList += '</ul>\n';
-    //console.log(linkList);
-    document.getElementById('viewDiv').innerHTML = linkList;
-    //set listeners to links (for custom tab opening)
-    //replicates an <a> with some more js added
-    for(var i in c.consumables) {
-      document.getElementById(i).addEventListener('click', constructListener(i));
-    }
-    document.getElementById('closeLink').addEventListener('click', hideLinks);
+    //console.log(restServer+'users/'+c.user.uid);
+    $.ajax({
+      method: 'get',
+      url: restServer+'users/'+c.user.uid,
+      success: function(data, textStatus, jqXHR) {
+          linkList= '<ul>';
+          linkList += '<li><div><span id="closeLink">Close</span></div></li>';
+          console.log(data);
+          for (var i in data.user._consumptions) {
+            var consumption = data.user._consumptions[i];
+            linkList += '<li><div><span id="'+consumption._id+'">'+consumption._consumable.url+'</span></div></li>';
+          }
+          linkList += '</ul>';
+          //console.log(linkList);
+          document.getElementById('viewDiv').innerHTML = linkList;
+          //set listeners to links (for custom tab opening)
+          //replicates an <a> with some more js added
+          for(var i in data.user._consumptions) {
+            var consumption = data.user._consumptions[i];
+            console.log(consumption._consumable.url);
+            document.getElementById(consumption._id).addEventListener('click', constructListener(consumption._consumable.url));
+          }
+          document.getElementById('closeLink').addEventListener('click', hideLinks);
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log('error: '+errorThrown);
+      },
+      complete: function(jqXHR, textStatus) {
+        console.log('complete: '+textStatus);
+      }
+    });
   });
 }
 
@@ -78,14 +66,20 @@ function login() {
   console.log('testing login');
   $.ajax({
     method: 'get',
-    url: restServer+'me',
+    url: restServer+'me',//needs to be changed somehow to change depending on email and pw (since uid is unknown at this state)
     success: function(data, textStatus, jqXHR) {
       console.log('login success');
-      document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Logout (dev)</span>';
-      document.getElementById('loginLink').addEventListener('click', function() {
-        $.ajaxSetup({headers: {}});
-        logoutUser();
+      
+      chrome.storage.local.get('user', function(c){
+        if(!c.user) {
+          c = {};
+          c.uid = data.user._id;
+        }
+        chrome.storage.local.set({'user': c});//update the storage
       });
+      
+      document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Logout</span>';
+      document.getElementById('loginLink').addEventListener('click', logoutUser);
     },
     error: function(jqXHR, textStatus, errorThrown) {
       console.log(errorThrown);
@@ -93,9 +87,11 @@ function login() {
   });
 }
 
-function logoutUser() {
-  document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Login (dev)</span>';
+function logoutUser(e) {
+  $.ajaxSetup({headers: {}});
+  document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Login</span>';
   document.getElementById('loginLink').addEventListener('click', loginUser);
+  clearConsumables();
 }
 
 // create login form
@@ -112,7 +108,7 @@ function loginUser(e) {
 
 function closeLogin(e) {
   var loginDiv = document.getElementById('loginDiv');
-  loginDiv.innerHTML = '<div id="loginDiv"><span id="loginLink">Login (dev)</span></div>';
+  loginDiv.innerHTML = '<div id="loginDiv"><span id="loginLink">Login</span></div>';
   
   var loginLink = document.getElementById('loginLink');
   loginLink.removeEventListener('click', closeLogin);
@@ -158,16 +154,24 @@ function saveLink(url, cb) {
   });
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-  var saveDiv = document.getElementById('saveLink');
-  saveDiv.addEventListener('click', saveLinks);
+document.addEventListener('DOMContentLoaded', function () {  
+  chrome.storage.local.get('user', function(c){
+    if(!c) { //if not logged in
+      document.body.innerHTML += '<div id="loginDiv"><span id="loginLink">Login</span></div>';
+      document.getElementById('loginLink').addEventListener('click', loginUser);
+    }
+    else {
+      document.body.innerHTML += '<div id="loginDiv"><span id="loginLink">Logout</span></div>';
+      document.getElementById('loginLink').addEventListener('click', logoutUser);
+    }
+    
+    var saveDiv = document.getElementById('saveLink');
+    saveDiv.addEventListener('click', saveLinks);
 
-  var viewLink = document.getElementById('viewLink');
-  viewLink.addEventListener('click', showLinks);
+    var viewLink = document.getElementById('viewLink');
+    viewLink.addEventListener('click', showLinks);
 
-  var clearLink = document.getElementById('clearLink');
-  clearLink.addEventListener('click', clearConsumables);
-
-  var loginLink = document.getElementById('loginLink');
-  loginLink.addEventListener('click', loginUser);
+    var clearLink = document.getElementById('clearLink');
+    clearLink.addEventListener('click', clearConsumables);
+  });
 });
