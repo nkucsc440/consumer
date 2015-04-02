@@ -1,12 +1,5 @@
 var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
 
-//gets the url of the current tab and saves the link
-function saveLinks(e) {
-  chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
-      //console.log('Saved: ' + tabs[0].url);
-      saveLink(tabs[0].url);//, window.close);
-  });
-}
 
 function toggleConsumablesViewLink(e) {
   var showingLinks = !!$('#toggleConsumablesViewLink').data('showingLinks');
@@ -65,8 +58,8 @@ function logoutUser(e) {
 
 // create login form
 function loginUser(e) {
-  var loginForm = '<input id="username" type="text" name="username" placeholder="Username">';
-  loginForm += '<input id="password" type="password" name="password" placeholder="Password">';
+  var loginForm = '<br><input id="username" type="text" name="username" placeholder="Username"><br>';
+  loginForm += '<input id="password" type="password" name="password" placeholder="Password"><br>';
   loginForm += '<button id="loginBtn">Login</button>';
   document.getElementById('loginLogoutDiv').innerHTML += loginForm;
   document.getElementById('loginBtn').addEventListener('click', login);
@@ -150,6 +143,14 @@ function stripFragment(url) {
   return url.split('#')[0];
 }
 
+//gets the url of the current tab and saves the link
+function saveLinks(e) {
+  chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
+      //console.log('Saved: ' + tabs[0].url);
+      saveLink(tabs[0].url, window.close);
+  });
+}
+
 function saveLink(url, cb) {
   url = stripFragment(url);
   url = url.replace(/.*?:\/\//g, "");
@@ -205,7 +206,8 @@ function addConsumable(cid, cb) {
       }
     },
     success: function(data, textStatus, jqXHR) {
-      // cb();
+      cb();
+      testLogin();
     }
   });
 }
