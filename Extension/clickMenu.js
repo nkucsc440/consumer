@@ -17,17 +17,77 @@ function stripFragment(url) {
   return url.split('#')[0];
 }
 
+var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
+
 function saveLink(url, cb) {
   url = stripFragment(url);
-  chrome.storage.local.get('consumables', function(c){
-    if(!c.consumables)
-      c.consumables = {};
-    if(!c.consumables[url]) //if the url is not already saved
-      c.consumables[url] = {}; //save it
-    chrome.storage.local.set({'consumables': c.consumables});//update the storage
-    if(cb)
-      cb();
+  url = url.replace(/.*?:\/\//g, "");
+  
+  chrome.storage.local.get('user', function(c) {
+    if(!c.user) {
+      cb();//no user, don't save
+      return;
+    }
+    //console.log(restServer+'users/'+c.user.uid);
+    $.ajax({
+      method: 'get',
+      url: restServer+'consumables/',
+      success: function(data, textStatus, jqXHR) {
+        if(!findUrl(url, data.consumables)) { //if url is not already in consumables
+          $.ajax({
+            url: restServer+'consumables/',
+            method: 'post',
+            dataType: 'json',
+            data: {
+              consumable: {
+                url: url
+              }
+            },
+            success: function(data2, textStatus, jqXHR) {
+              addConsumable(c.user.uid, data2.consumable._id, cb);
+            }
+          });
+        }
+        else {
+          var cid = data.consumables[findUrl(url, data.consumables)]._id;
+          addConsumable(c.user.uid, cid, cb);
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log('error: '+errorThrown);
+      },
+      complete: function(jqXHR, textStatus) {
+        console.log('complete: '+textStatus);
+      }
+    });
   });
+}
+
+function addConsumable(uid, cid, cb) {
+  $.ajax({
+    url: restServer+'consumptions/',
+    method: 'post',
+    dataType: 'json',
+    data: {
+      consumption: {
+        _user: uid,
+        _consumable: cid
+      }
+    },
+    success: function(data, textStatus, jqXHR) {
+      console.log(data);
+      return;
+      cb();
+    }
+  });
+}
+
+function findUrl(url, consumables) {
+  for(var i in consumables) {
+    if(consumables[i].url === url)
+      return i;
+  }
+  return false;
 }
 
 function saveTime(url, time, cb) {

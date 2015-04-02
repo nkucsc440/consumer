@@ -145,14 +145,34 @@ function saveLink(url, cb) {
   url = url.replace(/.*?:\/\//g, "");
   
   chrome.storage.local.get('user', function(c) {
-    if(!c.user)
-      return;//no user, don't save
+    if(!c.user) {
+      cb();//no user, don't save
+      return;
+    }
     //console.log(restServer+'users/'+c.user.uid);
     $.ajax({
-      method: 'GET',
-      url: restServer+'users/'+c.user.uid,
+      method: 'get',
+      url: restServer+'consumables/',
       success: function(data, textStatus, jqXHR) {
-        //push url into user consumables
+        if(!findUrl(url, data.consumables)) { //if url is not already in consumables
+          $.ajax({
+            url: restServer+'consumables/',
+            method: 'post',
+            dataType: 'json',
+            data: {
+              consumable: {
+                url: url
+              }
+            },
+            success: function(data2, textStatus, jqXHR) {
+              addConsumable(c.user.uid, data2.consumable._id, cb);
+            }
+          });
+        }
+        else {
+          var cid = data.consumables[findUrl(url, data.consumables)]._id;
+          addConsumable(c.user.uid, cid, cb);
+        }
       },
       error: function(jqXHR, textStatus, errorThrown) {
         console.log('error: '+errorThrown);
@@ -162,6 +182,33 @@ function saveLink(url, cb) {
       }
     });
   });
+}
+
+function addConsumable(uid, cid, cb) {
+  $.ajax({
+    url: restServer+'consumptions/',
+    method: 'post',
+    dataType: 'json',
+    data: {
+      consumption: {
+        _user: uid,
+        _consumable: cid
+      }
+    },
+    success: function(data, textStatus, jqXHR) {
+      console.log(data);
+      return;
+      cb();
+    }
+  });
+}
+
+function findUrl(url, consumables) {
+  for(var i in consumables) {
+    if(consumables[i].url === url)
+      return i;
+  }
+  return false;
 }
 
 document.addEventListener('DOMContentLoaded', function () {  
