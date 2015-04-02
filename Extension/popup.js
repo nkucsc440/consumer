@@ -4,7 +4,7 @@ var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
 function saveLinks(e) {
   chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
       //console.log('Saved: ' + tabs[0].url);
-      saveLink(tabs[0].url, window.close);
+      saveLink(tabs[0].url);//, window.close);
   });
 }
 
@@ -243,7 +243,7 @@ function addConsumable(cid, cb) {
       }
     },
     success: function(data, textStatus, jqXHR) {
-      cb();
+      // cb();
     }
   });
 }
@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function () {
 function consumeLink(e) {
   chrome.tabs.query({ currentWindow: true, active: true }, function(currentTab) {
     currentTab = currentTab[0];
-    chrome.runtime.sendMessage({getTime: currentTab.url}, function(time) {
+    chrome.runtime.sendMessage({getTime: currentTab.url}, function(timex) {
       chrome.storage.local.get('currentConsumption', function(c) {
         var consumptionId = c.currentConsumption;
         $.ajax({
