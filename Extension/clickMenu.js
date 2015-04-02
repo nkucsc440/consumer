@@ -23,7 +23,7 @@ function saveLink(url, cb) {
   url = stripFragment(url);
   url = url.replace(/.*?:\/\//g, "");
 
-  chrome.storage.local.get('session', function(c) {
+  chrome.storage.local.get('user', function(c) {
     if(!c.user) {
       cb();//no user, don't save
       return;
@@ -44,13 +44,13 @@ function saveLink(url, cb) {
               }
             },
             success: function(data2, textStatus, jqXHR) {
-              addConsumable(c.user.uid, data2.consumable._id, cb);
+              addConsumable(data2.consumable._id, cb);
             }
           });
         }
         else {
           var cid = data.consumables[findUrl(url, data.consumables)]._id;
-          addConsumable(c.user.uid, cid, cb);
+          addConsumable(cid, cb);
         }
       },
       error: function(jqXHR, textStatus, errorThrown) {
