@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function () {
 function consumeLink(e) {
   chrome.tabs.query({ currentWindow: true, active: true }, function(currentTab) {
     currentTab = currentTab[0];
-    chrome.runtime.sendMessage({getTime: currentTab.url}, function(timex) {
+    chrome.runtime.sendMessage({getTime: currentTab.url}, function(time) {
       chrome.storage.local.get('currentConsumption', function(c) {
         var consumptionId = c.currentConsumption;
         $.ajax({
