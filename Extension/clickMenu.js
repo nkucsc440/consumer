@@ -22,8 +22,8 @@ var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
 function saveLink(url, cb) {
   url = stripFragment(url);
   url = url.replace(/.*?:\/\//g, "");
-  
-  chrome.storage.local.get('user', function(c) {
+
+  chrome.storage.local.get('session', function(c) {
     if(!c.user) {
       cb();//no user, don't save
       return;
@@ -107,8 +107,7 @@ function saveTime(url, time, cb) {
       c.consumables[url].totalTime = time;
     }
     chrome.storage.local.set({'consumables': c.consumables});//update the storage
-    if(cb)
-      cb();
+    if(cb) cb();
   });
 }
 

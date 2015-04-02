@@ -10,18 +10,21 @@
       padding: 0px;
       text-align: center;
       font-family: sans-serif;
-      width: 200px;
+      width: 300px;
     }
     div#main {
       cursor: pointer;
       background: #cccccc;
     }
     div.popupItem {
-      padding: 5px 0;
+      padding: 10px 0;
+      border-top: 1px solid #aaa;
+      border-bottom: 1px solid #bbb;
     }
     li {
       border-top: 1px solid #bbb;
       border-bottom: 1px solid #ccc;
+      padding: 3px 0;
     }
     #titleDiv {
       background: #444;
@@ -37,12 +40,15 @@
       list-style-type: none;
       margin: 0;
       padding: 0;
-      background: #ddd
+      background: #eee
     }
     div:hover {
-      background: #aaaaaa;
+      background: #aaa;
     }
-    .fakeA {
+    li:hover {
+      background: #fafafa
+    }
+    .consumption {
       color: blue;
     }
     #main {
@@ -55,9 +61,7 @@
   <body>
     <div id="titleDiv"><span>ConsumIt</span></div>
    <!--- <div><span id="saveLink">Consume this page later</span></div>-->
-    <div id="main">
-      <div class="popupItem" id="viewDiv"><span id="viewLink">View Consumables</span></div>
-    </div>
+    <div id="main"> </div>
     <!---<div><span id="clearLink">Clear all consumables (dev)</span></div>-->
   </body>
 </html>

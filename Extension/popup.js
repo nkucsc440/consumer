@@ -4,52 +4,75 @@ var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
 function saveLinks(e) {
   chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
       //console.log('Saved: ' + tabs[0].url);
-      saveLink(tabs[0].url, window.close);
+      saveLink(tabs[0].url);//, window.close);
   });
+}
+
+function toggleConsumablesViewLink(e) {
+  var showingLinks = !!$('#toggleConsumablesViewLink').data('showingLinks');
+  if (showingLinks) {
+    hideLinks();
+  } else {
+    showLinks();
+  }
+  $('#toggleConsumablesViewLink').data('showingLinks', !showingLinks);
+}
+
+function hideLinks() {
+  document.getElementById('consumablesDiv').innerHTML = '';
+  document.getElementById('toggleConsumablesViewLink').innerHTML = 'Show Consumables';
 }
 
 //creates a list of all saved links
 //may need to add pages to support lots of links
-function showLinks(e) {
+function showLinks() {
   chrome.storage.local.get('user', function(c) {
-    if(!c.user) {
-      document.getElementById('viewDiv').innerHTML = '<div class="popupItem"><span id="closeLink">Close</span></div>';
-      document.getElementById('closeLink').addEventListener('click', hideLinks);
-      return;
+    if(!c.user) { return; }
+    var user = c.user;
+    var linkList;
+    linkList= '<ul>';
+    //console.log(data);
+    for (var i in user._consumptions) {
+      var consumption = user._consumptions[i];
+      linkList += '<li id="'+consumption._id+'" data-url="'+consumption._consumable.url+'" class="consumption">'+consumption._consumable.url
+                + '<br>'+(consumption.consumeTime/1000)+'s</li>';
     }
-    //console.log(restServer+'users/'+c.user.uid);
-    $.ajax({
-      method: 'get',
-      url: restServer+'users/'+c.user.uid,
-      success: function(data, textStatus, jqXHR) {
-          var linkList;
-          linkList= '<ul>';
-          linkList += '<li><div><span id="closeLink">Close</span></div></li>';
-          //console.log(data);
-          for (var i in data.user._consumptions) {
-            var consumption = data.user._consumptions[i];
-            linkList += '<li><div><span class="fakeA" id="'+consumption._id+'">'+consumption._consumable.url+'</span></div></li>';
-          }
-          linkList += '</ul>';
-          //console.log(linkList);
-          document.getElementById('viewDiv').innerHTML = linkList;
-          //set listeners to links (for custom tab opening)
-          //replicates an <a> with some more js added
-          for(var i in data.user._consumptions) {
-            var consumption = data.user._consumptions[i];
-            //console.log(consumption._consumable.url);
-            document.getElementById(consumption._id).addEventListener('click', constructListener(consumption._consumable.url));
-          }
-          document.getElementById('closeLink').addEventListener('click', hideLinks);
-      },
-      error: function(jqXHR, textStatus, errorThrown) {
-        console.log('error: '+errorThrown);
-      },
-      complete: function(jqXHR, textStatus) {
-        console.log('complete: '+textStatus);
-      }
-    });
+    linkList += '</ul>';
+    //console.log(linkList);
+    document.getElementById('consumablesDiv').innerHTML = linkList;
+    //set listeners to links (for custom tab opening)
+    //replicates an <a> with some more js added
+    for(var i in user._consumptions) {
+      var consumption = user._consumptions[i];
+      //console.log(consumption._consumable.url);
+      // document.getElementById(consumption._id).addEventListener('click', beginConsumption(consumption._consumable.url));
+    }
+    document.getElementById('toggleConsumablesViewLink').innerHTML = 'Hide Consumables';
+
   });
+}
+
+
+function logoutUser(e) {
+  $.ajaxSetup({headers: {}});
+  document.getElementById('loginLogoutDiv').innerHTML = '<span id="loginLogoutLink">Login</span>';
+  document.getElementById('loginLogoutLink').addEventListener('click', loginUser);
+  clearConsumables();
+
+  chrome.storage.local.remove('user');
+  updateActionItems();
+}
+
+// create login form
+function loginUser(e) {
+  var loginForm = '<input id="username" type="text" name="username" placeholder="Username">';
+  loginForm += '<input id="password" type="password" name="password" placeholder="Password">';
+  loginForm += '<button id="loginBtn">Login</button>';
+  document.getElementById('loginLogoutDiv').innerHTML += loginForm;
+  document.getElementById('loginBtn').addEventListener('click', login);
+  var loginLogoutLink = document.getElementById('loginLogoutLink');
+  loginLogoutLink.removeEventListener('click', loginUser);
+  loginLogoutLink.addEventListener('click', closeLogin);
 }
 
 // add credentials to all ajax calls
@@ -62,80 +85,61 @@ function login() {
     headers: { 'Authorization': 'Basic '+btoa(username+':'+password) },
   });
 
+  // required for prod - not just a test
+  testLogin();
+}
+
+function testLogin() {
   console.log('testing login');
   $.ajax({
     method: 'get',
-    url: restServer+'me',//needs to be changed somehow to change depending on email and pw (since uid is unknown at this state)
-    success: function(data, textStatus, jqXHR) {
+    // needs to be changed somehow to change depending on email and pw (since uid is unknown at this state) -Cory
+    // I created an endpoint, /me, that uses the user info which is sent with every request -Calvin
+    url: restServer+'me',
+    success: function(responseData, textStatus, jqXHR) {
       console.log('login success');
 
-      chrome.storage.local.get('user', function(c){
-        if(!c.user) {
+      chrome.storage.local.get('user', function(c) {
+        if (!c) {
           c = {};
-          c.uid = data.user._id;
         }
-        chrome.storage.local.set({'user': c});//update the storage
+        c.user = responseData.user;
+        chrome.storage.local.set(c);//update the storage
+        updateActionItems();
       });
-
-      document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Logout</span>';
-      document.getElementById('loginLink').addEventListener('click', logoutUser);
     },
     error: function(jqXHR, textStatus, errorThrown) {
       console.log(errorThrown);
+      logoutUser();
     }
   });
 }
 
-function logoutUser(e) {
-  $.ajaxSetup({headers: {}});
-  document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Login</span>';
-  document.getElementById('loginLink').addEventListener('click', loginUser);
-  clearConsumables();
-}
-
-// create login form
-function loginUser(e) {
-  var loginForm = '<input id="username" type="text" name="username" placeholder="Username">';
-  loginForm += '<input id="password" type="password" name="password" placeholder="Password">';
-  loginForm += '<button id="loginBtn">Login</button>';
-  document.getElementById('loginDiv').innerHTML += loginForm;
-  document.getElementById('loginBtn').addEventListener('click', login);
-  var loginLink = document.getElementById('loginLink');
-  loginLink.removeEventListener('click', loginUser);
-  loginLink.addEventListener('click', closeLogin);
-}
-
 function closeLogin(e) {
-  var loginDiv = document.getElementById('loginDiv');
-  loginDiv.innerHTML = '<div id="loginDiv"><span id="loginLink">Login</span></div>';
+  var loginLogoutDiv = document.getElementById('loginLogoutDiv');
+  loginLogoutDiv.innerHTML = '<div id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>';
 
-  var loginLink = document.getElementById('loginLink');
-  loginLink.removeEventListener('click', closeLogin);
-  loginLink.addEventListener('click', loginUser);
+  var loginLogoutLink = document.getElementById('loginLogoutLink');
+  loginLogoutLink.removeEventListener('click', closeLogin);
+  loginLogoutLink.addEventListener('click', loginUser);
 }
 
 //can't have a function that references an external variable so need to make one
-function constructListener(link) {
-  link = 'http://' + link;//links no longer come with a full url
-  var f = function(){
-    chrome.tabs.create({ url: link }, function(tab) {
-      chrome.runtime.sendMessage({tab: tab});
-    });
-  }
-  return f;
+function beginConsumption(e) {
+  var self = this;
+  // use this to update with later
+  chrome.storage.local.set({'currentConsumption': self.attributes.id.value});
+  link = 'http://' + $(self).data('url');//links no longer come with a full url
+
+  chrome.tabs.create({ url: link }, function(tab) {
+    chrome.runtime.sendMessage({tab: tab});
+  });
 }
 
 function getActiveTabs(cb) {
   chrome.runtime.sendMessage({getActive: true}, function(tabs){
     cb(tabs);
   });
-}
-
-//close the list of links
-function hideLinks(e) {
-  var viewDiv = document.getElementById('viewDiv');
-  viewDiv.innerHTML = '<span id="viewLink">View Consumables</span>';
-  document.getElementById('viewLink').addEventListener('click', showLinks);
 }
 
 function clearConsumables() {
@@ -158,7 +162,7 @@ function saveLink(url, cb) {
     //console.log(restServer+'users/'+c.user.uid);
     $.ajax({
       method: 'get',
-      url: restServer+'consumables/',
+      url: restServer+'consumables',
       success: function(data, textStatus, jqXHR) {
         if(!findUrl(url, data.consumables)) { //if url is not already in consumables
           $.ajax({
@@ -171,13 +175,13 @@ function saveLink(url, cb) {
               }
             },
             success: function(data2, textStatus, jqXHR) {
-              addConsumable(c.user.uid, data2.consumable._id, cb);
+              addConsumable(data2.consumable._id, cb);
             }
           });
         }
         else {
           var cid = data.consumables[findUrl(url, data.consumables)]._id;
-          addConsumable(c.user.uid, cid, cb);
+          addConsumable(cid, cb);
         }
       },
       error: function(jqXHR, textStatus, errorThrown) {
@@ -190,19 +194,18 @@ function saveLink(url, cb) {
   });
 }
 
-function addConsumable(uid, cid, cb) {
+function addConsumable(cid, cb) {
   $.ajax({
     url: restServer+'consumptions/',
     method: 'post',
     dataType: 'json',
     data: {
       consumption: {
-        _user: uid,
         _consumable: cid
       }
     },
     success: function(data, textStatus, jqXHR) {
-      cb();
+      // cb();
     }
   });
 }
@@ -224,72 +227,74 @@ function containsTab(tab, tabs) {
   return false;
 }
 
-//very messy because listeners must be added after page is modified
-document.addEventListener('DOMContentLoaded', function () {
-  chrome.storage.local.get('user', function(c){
+function updateActionItems() {
+  chrome.storage.local.get('user', function(c) {
+    var user = c.user;
     chrome.tabs.query({currentWindow: true, active: true}, function(currentTab){
         currentTab = currentTab[0];//only 1 active tab, but still array for some reason
-        getActiveTabs(function(tabs){
-          //console.log(containsTab(currentTab, tabs));
-          if(containsTab(currentTab, tabs)) {
-            document.getElementById('main').innerHTML = '<div class="popupItem" id="consumeDiv"><span id="consumeLink">Done consuming</span></div>' + document.getElementById('main').innerHTML;
+        getActiveTabs(function(tabs) {
+
+          document.getElementById('main').innerHTML = '';
+
+          if (user) { //if logged in
+
+            //////////// Consume later / Done consuming
+            if (containsTab(currentTab, tabs)) { //if current tab is already a consumable
+              document.getElementById('main').innerHTML += '<div class="popupItem" id="consumeDiv"><span id="consumeLink">Done consuming</span></div>';
+            }
+            else {
+              document.getElementById('main').innerHTML += '<div class="popupItem"><span id="saveLink">Consume this page later</span></div>';
+            }
+
+            //////////// Show Consumables btn
+            document.getElementById('main').innerHTML += '<div class="popupItem"><span id="toggleConsumablesViewLink">Show Consumables</span></div>';
+            document.getElementById('main').innerHTML += '<div id="consumablesDiv"></div>';
+
+            //////////// Logout btn
+            document.getElementById('main').innerHTML += '<div class="popupItem" id="loginLogoutDiv"><span id="loginLogoutLink">Logout</span></div>';
+            document.getElementById('loginLogoutLink').addEventListener('click', logoutUser);
           }
           else {
-            document.getElementById('main').innerHTML = '<div class="popupItem"><span id="saveLink">Consume this page later</span></div>' + document.getElementById('main').innerHTML;
+            //////////// Login btn
+            document.getElementById('main').innerHTML += '<div class="popupItem" id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>';
+            document.getElementById('loginLogoutLink').addEventListener('click', loginUser);
           }
-          if(!c.user) { //if not logged in
-            document.getElementById('main').innerHTML += '<div class="popupItem" id="loginDiv"><span id="loginLink">Login</span></div>';
-            document.getElementById('loginLink').addEventListener('click', loginUser);
-          }
-          else {
-            document.getElementById('main').innerHTML += '<div class="popupItem" id="loginDiv"><span id="loginLink">Logout</span></div>';
-            document.getElementById('loginLink').addEventListener('click', logoutUser);
-          }
-          if(containsTab(currentTab, tabs)) {
-            document.getElementById('consumeLink').addEventListener('click', consumeLink);
-          }
-          else {
-            document.getElementById('saveLink').addEventListener('click', saveLinks);
-          }
-          document.getElementById('viewLink').addEventListener('click', showLinks);
-          //document.getElementById('clearLink').addEventListener('click', clearConsumables);
-        });
+      });
     });
   });
+}
+
+//very messy because listeners must be added after page is modified
+document.addEventListener('DOMContentLoaded', function () {
+  updateActionItems();
+  $('#main').on('click', '#toggleConsumablesViewLink', toggleConsumablesViewLink);
+  $('#main').on('click', '#saveLink', saveLinks);
+  $('#main').on('click', '#consumeLink', consumeLink);
+  $('#main').on('click', '.consumption', beginConsumption);
 });
 
 function consumeLink(e) {
-  chrome.tabs.query({currentWindow: true, active: true}, function(currentTab){
+  chrome.tabs.query({ currentWindow: true, active: true }, function(currentTab) {
     currentTab = currentTab[0];
-    chrome.runtime.sendMessage({getTime: currentTab.url}, function(time){
-      chrome.storage.local.get('user', function(c){
+    chrome.runtime.sendMessage({getTime: currentTab.url}, function(timex) {
+      chrome.storage.local.get('currentConsumption', function(c) {
+        var consumptionId = c.currentConsumption;
         $.ajax({
-          method: 'get',
-          url: restServer+'consumables/',
-          success: function(data, textStatus, jqXHR) {
-            //actual code starts here
-            var cid = data.consumables[findUrl(currentTab.url, data.consumables)]._id;
-            $.ajax({
-              url: restServer+'consumptions/',
-              method: 'put',
-              dataType: 'json',
-              data: {
-                consumption: {
-                  _user: c.user.uid,
-                  _consumable: cid,
-                  consumeTime: time
-                }
-              },
-              success: function(data, textStatus, jqXHR) {
-                console.log(data);
+          method: 'put',
+          url: restServer+'consumptions/'+consumptionId,
+          contentType: "application/json",
+          data: JSON.stringify({
+              "consumption": {
+                "consumeTime": time,
+                "consumed": true
               }
-            });
-          },
-          error: function(jqXHR, textStatus, errorThrown) {
+            }),
+          error: function (jqXHR, textStatus, errorThrown) {
             console.log('error: '+errorThrown);
           },
-          complete: function(jqXHR, textStatus) {
+          complete: function (jqXHR, textStatus) {
             console.log('complete: '+textStatus);
+            chrome.storage.local.remove('currentConsumption');
             //window.close();
           }
         });
