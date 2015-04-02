@@ -13,7 +13,7 @@ function saveLinks(e) {
 function showLinks(e) {
   chrome.storage.local.get('user', function(c) {
     if(!c.user) {
-      document.getElementById('viewDiv').innerHTML = '<div><span id="closeLink">Close</span></div>';
+      document.getElementById('viewDiv').innerHTML = '<div class="popupItem"><span id="closeLink">Close</span></div>';
       document.getElementById('closeLink').addEventListener('click', hideLinks);
       return;
     }
@@ -68,7 +68,7 @@ function login() {
     url: restServer+'me',//needs to be changed somehow to change depending on email and pw (since uid is unknown at this state)
     success: function(data, textStatus, jqXHR) {
       console.log('login success');
-      
+
       chrome.storage.local.get('user', function(c){
         if(!c.user) {
           c = {};
@@ -76,7 +76,7 @@ function login() {
         }
         chrome.storage.local.set({'user': c});//update the storage
       });
-      
+
       document.getElementById('loginDiv').innerHTML = '<span id="loginLink">Logout</span>';
       document.getElementById('loginLink').addEventListener('click', logoutUser);
     },
@@ -108,7 +108,7 @@ function loginUser(e) {
 function closeLogin(e) {
   var loginDiv = document.getElementById('loginDiv');
   loginDiv.innerHTML = '<div id="loginDiv"><span id="loginLink">Login</span></div>';
-  
+
   var loginLink = document.getElementById('loginLink');
   loginLink.removeEventListener('click', closeLogin);
   loginLink.addEventListener('click', loginUser);
@@ -149,7 +149,7 @@ function stripFragment(url) {
 function saveLink(url, cb) {
   url = stripFragment(url);
   url = url.replace(/.*?:\/\//g, "");
-  
+
   chrome.storage.local.get('user', function(c) {
     if(!c.user) {
       cb();//no user, don't save
@@ -226,24 +226,24 @@ function containsTab(tab, tabs) {
 }
 
 //very messy because listeners must be added after page is modified
-document.addEventListener('DOMContentLoaded', function () {  
+document.addEventListener('DOMContentLoaded', function () {
   chrome.storage.local.get('user', function(c){
     chrome.tabs.query({currentWindow: true, active: true}, function(currentTab){
         currentTab = currentTab[0];//only 1 active tab, but still array for some reason
         getActiveTabs(function(tabs){
           console.log(containsTab(currentTab, tabs));
           if(containsTab(currentTab, tabs)) {
-            document.getElementById('main').innerHTML = '<div id="consumeDiv"><span id="consumeLink">Done consuming</span></div>' + document.getElementById('main').innerHTML;
+            document.getElementById('main').innerHTML = '<div class="popupItem" id="consumeDiv"><span id="consumeLink">Done consuming</span></div>' + document.getElementById('main').innerHTML;
           }
           else {
-            document.getElementById('main').innerHTML = '<div><span id="saveLink">Consume this page later</span></div>' + document.getElementById('main').innerHTML;
+            document.getElementById('main').innerHTML = '<div class="popupItem"><span id="saveLink">Consume this page later</span></div>' + document.getElementById('main').innerHTML;
           }
           if(!c.user) { //if not logged in
-            document.getElementById('main').innerHTML += '<div id="loginDiv"><span id="loginLink">Login</span></div>';
+            document.getElementById('main').innerHTML += '<div class="popupItem" id="loginDiv"><span id="loginLink">Login</span></div>';
             document.getElementById('loginLink').addEventListener('click', loginUser);
           }
           else {
-            document.getElementById('main').innerHTML += '<div id="loginDiv"><span id="loginLink">Logout</span></div>';
+            document.getElementById('main').innerHTML += '<div class="popupItem" id="loginDiv"><span id="loginLink">Logout</span></div>';
             document.getElementById('loginLink').addEventListener('click', logoutUser);
           }
           if(containsTab(currentTab, tabs)) {
