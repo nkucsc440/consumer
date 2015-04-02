@@ -1,12 +1,5 @@
 var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
 
-//gets the url of the current tab and saves the link
-function saveLinks(e) {
-  chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
-      //console.log('Saved: ' + tabs[0].url);
-      saveLink(tabs[0].url);//, window.close);
-  });
-}
 
 function toggleConsumablesViewLink(e) {
   var showingLinks = !!$('#toggleConsumablesViewLink').data('showingLinks');
@@ -65,8 +58,8 @@ function logoutUser(e) {
 
 // create login form
 function loginUser(e) {
-  var loginForm = '<input id="username" type="text" name="username" placeholder="Username">';
-  loginForm += '<input id="password" type="password" name="password" placeholder="Password">';
+  var loginForm = '<br><input id="username" type="text" name="username" placeholder="Username"><br>';
+  loginForm += '<input id="password" type="password" name="password" placeholder="Password"><br>';
   loginForm += '<button id="loginBtn">Login</button>';
   document.getElementById('loginLogoutDiv').innerHTML += loginForm;
   document.getElementById('loginBtn').addEventListener('click', login);
@@ -115,44 +108,6 @@ function testLogin() {
   });
 }
 
-//Also need to login to user specific page
-// function loginToUser(user, pass) {
-//   chrome.storage.local.get('user', function(c){
-//     $.ajaxSetup({
-//       headers: { 'Authorization': 'Basic '+btoa(username+':'+password) },
-//     });
-//     $.ajax({
-//       method: 'get',
-//       url: restServer+'users/'+c.user.uid,
-//       success: function(data, textStatus, jqXHR) {
-//         console.log('logged into user page');
-//       },
-//       error: function(jqXHR, textStatus, errorThrown) {
-//         console.log(errorThrown);
-//       }
-//     });
-//   });
-// }
-
-function logoutUser(e) {
-  $.ajaxSetup({headers: {}});
-  document.getElementById('loginLogoutDiv').innerHTML = '<span id="loginLink">Login</span>';
-  document.getElementById('loginLink').addEventListener('click', loginUser);
-  clearConsumables();
-}
-
-// create login form
-function loginUser(e) {
-  var loginForm = '<input id="username" type="text" name="username" placeholder="Username">';
-  loginForm += '<input id="password" type="password" name="password" placeholder="Password">';
-  loginForm += '<button id="loginBtn">Login</button>';
-  document.getElementById('loginLogoutDiv').innerHTML += loginForm;
-  document.getElementById('loginBtn').addEventListener('click', login);
-  var loginLink = document.getElementById('loginLink');
-  loginLink.removeEventListener('click', loginUser);
-  loginLink.addEventListener('click', closeLogin);
-}
-
 function closeLogin(e) {
   var loginLogoutDiv = document.getElementById('loginLogoutDiv');
   loginLogoutDiv.innerHTML = '<div id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>';
@@ -186,6 +141,14 @@ function clearConsumables() {
 
 function stripFragment(url) {
   return url.split('#')[0];
+}
+
+//gets the url of the current tab and saves the link
+function saveLinks(e) {
+  chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
+      //console.log('Saved: ' + tabs[0].url);
+      saveLink(tabs[0].url, window.close);
+  });
 }
 
 function saveLink(url, cb) {
@@ -233,18 +196,23 @@ function saveLink(url, cb) {
 }
 
 function addConsumable(cid, cb) {
-  $.ajax({
-    url: restServer+'consumptions/',
-    method: 'post',
-    dataType: 'json',
-    data: {
-      consumption: {
-        _consumable: cid
+  chrome.storage.local.get('user', function(c){
+    var user = c.user;
+    $.ajax({
+      url: restServer+'consumptions/',
+      method: 'post',
+      dataType: 'json',
+      data: {
+        consumption: {
+          "_user": user._id,
+          "_consumable": cid
+        }
+      },
+      success: function(data, textStatus, jqXHR) {
+        cb();
+        testLogin();
       }
-    },
-    success: function(data, textStatus, jqXHR) {
-      // cb();
-    }
+    });
   });
 }
 
@@ -333,6 +301,7 @@ function consumeLink(e) {
           complete: function (jqXHR, textStatus) {
             console.log('complete: '+textStatus);
             chrome.storage.local.remove('currentConsumption');
+            testLogin();
             //window.close();
           }
         });
