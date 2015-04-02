@@ -108,6 +108,44 @@ function testLogin() {
   });
 }
 
+//Also need to login to user specific page
+// function loginToUser(user, pass) {
+//   chrome.storage.local.get('user', function(c){
+//     $.ajaxSetup({
+//       headers: { 'Authorization': 'Basic '+btoa(username+':'+password) },
+//     });
+//     $.ajax({
+//       method: 'get',
+//       url: restServer+'users/'+c.user.uid,
+//       success: function(data, textStatus, jqXHR) {
+//         console.log('logged into user page');
+//       },
+//       error: function(jqXHR, textStatus, errorThrown) {
+//         console.log(errorThrown);
+//       }
+//     });
+//   });
+// }
+
+function logoutUser(e) {
+  $.ajaxSetup({headers: {}});
+  document.getElementById('loginLogoutDiv').innerHTML = '<span id="loginLink">Login</span>';
+  document.getElementById('loginLink').addEventListener('click', loginUser);
+  clearConsumables();
+}
+
+// create login form
+function loginUser(e) {
+  var loginForm = '<input id="username" type="text" name="username" placeholder="Username">';
+  loginForm += '<input id="password" type="password" name="password" placeholder="Password">';
+  loginForm += '<button id="loginBtn">Login</button>';
+  document.getElementById('loginLogoutDiv').innerHTML += loginForm;
+  document.getElementById('loginBtn').addEventListener('click', login);
+  var loginLink = document.getElementById('loginLink');
+  loginLink.removeEventListener('click', loginUser);
+  loginLink.addEventListener('click', closeLogin);
+}
+
 function closeLogin(e) {
   var loginLogoutDiv = document.getElementById('loginLogoutDiv');
   loginLogoutDiv.innerHTML = '<div id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>';
