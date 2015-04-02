@@ -115,7 +115,6 @@ function testLogin() {
   });
 }
 
-<<<<<<< HEAD
 //Also need to login to user specific page
 // function loginToUser(user, pass) {
 //   chrome.storage.local.get('user', function(c){
@@ -154,8 +153,6 @@ function loginUser(e) {
   loginLink.addEventListener('click', closeLogin);
 }
 
-=======
->>>>>>> origin/master
 function closeLogin(e) {
   var loginLogoutDiv = document.getElementById('loginLogoutDiv');
   loginLogoutDiv.innerHTML = '<div id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>';
