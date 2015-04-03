@@ -5,23 +5,20 @@
     <title>ConsumIt</title>
     <style>
     body {
-      overflow: hidden;
       margin: 0px;
       padding: 0px;
       text-align: center;
       font-family: sans-serif;
-      width: 300px;
-    }
-    div#main {
-      cursor: pointer;
-      background: #cccccc;
+      width: 400px;
     }
     div.popupItem {
       padding: 10px 0;
       border-top: 1px solid #aaa;
       border-bottom: 1px solid #bbb;
+      cursor: pointer;
     }
     li {
+      cursor: pointer;
       border-top: 1px solid #bbb;
       border-bottom: 1px solid #ccc;
       padding: 3px 0;
@@ -40,7 +37,7 @@
       list-style-type: none;
       margin: 0;
       padding: 0;
-      background: #eee
+      background: #eee;
     }
     div:hover {
       background: #aaa;
@@ -53,6 +50,11 @@
     }
     #main {
       padding: 0;
+      background: #cccccc;
+    }
+    #consumablesDiv {
+      overflow: auto;
+      max-height: 300px;
     }
     </style>
     <script src="jquery-2.1.3.js"></script>
