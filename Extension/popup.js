@@ -30,11 +30,15 @@ function showLinks() {
 
     for (var i in user._consumptions) {
       var consumption = user._consumptions[i];
-      linkList += '<li id="' + consumption._id + '" data-url="' + consumption._consumable.url + '" class="consumption">' + consumption._consumable.url;
-      if (consumption.consumeTime) {
-        linkList += '<br>' + (consumption.consumeTime / 1000) + 's';
-        linkList += '<br><A HREF="mailto:mclain.calvin@gmail.com?Subject=ConsumIt%21&Body=Check%20this%20out%21">Share</A>' + '</li>';
+      var consumable = consumption._consumable;
+      linkList += '<li id="' + consumption._id + '" data-url="' + consumable.url + '" class="consumption">' + consumable.url + '<br>';
+      if (consumable.consumedCount && consumable.consumedCount > 0) {
+        linkList += 'Average Consume Time: ' + (consumable.averageConsumeTime / 1000) + 's<br>';
+        linkList += 'Consumed: ' + (consumable.consumedCount) + ' time' + (consumable.consumedCount == 1 ? '' : 's');
+      } else {
+        linkList += '<strong>Be the first to consume this! </strong>';
       }
+      linkList += '</li>';
     }
 
     linkList += '</ul>';
