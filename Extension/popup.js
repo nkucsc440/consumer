@@ -13,7 +13,7 @@ function toggleConsumablesViewLink(e) {
 
 function hideLinks() {
   document.getElementById('consumablesDiv').innerHTML = '';
-  document.getElementById('toggleConsumablesViewLink').innerHTML = 'Show Consumables';
+  document.getElementById('toggleConsumablesViewLink').innerHTML = 'Show My Consumables';
 }
 
 //creates a list of all saved links
@@ -280,7 +280,7 @@ function updateActionItems() {
           }
 
           //////////// Show Consumables btn
-          document.getElementById('main').innerHTML += '<div class="popupItem"><span id="toggleConsumablesViewLink">Show Consumables</span></div>';
+          document.getElementById('main').innerHTML += '<div class="popupItem"><span id="toggleConsumablesViewLink">Show My Consumables</span></div>';
           document.getElementById('main').innerHTML += '<div id="consumablesDiv"></div>';
 
           //////////// Logout btn
