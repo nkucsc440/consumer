@@ -1,0 +1,11 @@
+* Click login
+* Enter Username and Password
+* Click submit
+* Click 'Show Consumables' to expand consumables
+* Click 'Hide Consumables' to collapse consumables
+* Click 'Consume this page later' to add a consumable
+* Click a consumable in the consumable list to consume a consumable
+* Click 'Done consuming' to finish consuming that consumable
+* Click 'Show Consumable' to view the consumable that was just consumed
+* Logout
+* Login
