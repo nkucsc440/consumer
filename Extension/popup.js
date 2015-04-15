@@ -23,6 +23,8 @@ function showLinks() {
     if (!c.user) {
       return;
     }
+    
+    //console.log(c);
 
     var user = c.user;
     var linkList;
@@ -173,7 +175,9 @@ function saveLinks(e) {
     active: true
   }, function(tabs) {
     //console.log('Saved: ' + tabs[0].url);
-    saveLink(tabs[0].url, window.close);
+    saveLink(tabs[0].url, function(){
+      testLogin();
+    });
   });
 }
 
@@ -235,7 +239,6 @@ function addConsumable(cid, cb) {
       },
       success: function(data, textStatus, jqXHR) {
         cb();
-        testLogin();
       }
     });
   });
