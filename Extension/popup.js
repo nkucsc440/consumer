@@ -88,20 +88,6 @@ function login() {
   var username = $('#username').val();
   var password = $('#password').val();
   console.log('beginning login');
-  
-  $.ajax({
-       type: "POST",
-       url: restServer + 'users',
-       data: {
-            username: username,
-            password: password
-        },
-       success: function(data)
-       {
-          //console.log(data);
-          console.log(data.user._id + ' logged in');
-       }
-   });
 
   $.ajaxSetup({
     headers: {
