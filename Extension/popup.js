@@ -140,10 +140,6 @@ function getActiveTabs(cb) {
   });
 }
 
-function stripFragment(url) {
-  return url.split('#')[0];
-}
-
 //gets the url of the current tab and saves the link
 function saveLinks(e) {
   chrome.tabs.query({
@@ -156,8 +152,6 @@ function saveLinks(e) {
 }
 
 function saveLink(url, cb) {
-  url = stripFragment(url);
-  url = url.replace(/.*?:\/\//g, "");
   chrome.runtime.sendMessage({
     link: url
   });
