@@ -6,12 +6,50 @@ var id = chrome.contextMenus.create({
   "contexts":['link'],
   "onclick": handleLink
 });
-//console.log("Link item:" + id);
 
 function handleLink(info, tab) {
   //console.log(info.linkUrl);
   saveLink(info.linkUrl);
 }
+
+//////////////////////// Message Handlers /////////////////////////////
+
+chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
+  //Request to start a timer for a tab
+  if(msg.tab) {
+    initTimer(msg.tab);
+  }
+  //Request for all active tabs (timers)
+  if(msg.getActive) {
+    cb(watchedTabs);
+  }
+  //Request for the total time spent on a certain tab
+  if(msg.getTime) {
+    msg.getTime = msg.getTime.replace(/.*?:\/\//g, "");
+    if(tabTimes[msg.getTime].startTime) {
+      stopTimer(msg.getTime);
+    }
+    cb(tabTimes[msg.getTime].totalTime);
+  }
+  //Request to close the session
+  if(msg.logout) {
+    logout();
+    cb();
+  }
+  //Request to start a session
+  //Includes callbacks for success/error
+  if(msg.login) {
+    login(msg.user, msg.pass);
+  }
+  //Request to save a link
+  if(msg.link) {
+    saveLink(msg.link);
+  }
+  //Request to consume a link
+  if(msg.consume) {
+    consumeLink(msg.time, msg.cid);
+  }
+});
 
 //////////////////////////////// Consume Timer Script ///////////////////////////////////////////////
 
@@ -80,43 +118,6 @@ function initTimer(tab){
   tabIds.push(tab.id);
   startTimer(tab.url);
 }
-
-chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
-  //Request to start a timer for a tab
-  if(msg.tab) {
-    initTimer(msg.tab);
-  }
-  //Request for all active tabs (timers)
-  if(msg.getActive) {
-    cb(watchedTabs);
-  }
-  //Request for the total time spent on a certain tab
-  if(msg.getTime) {
-    msg.getTime = msg.getTime.replace(/.*?:\/\//g, "");
-    if(tabTimes[msg.getTime].startTime) {
-      stopTimer(msg.getTime);
-    }
-    cb(tabTimes[msg.getTime].totalTime);
-  }
-  //Request to close the session
-  if(msg.logout) {
-    logout();
-    cb();
-  }
-  //Request to start a session
-  //Includes callbacks for success/error
-  if(msg.login) {
-    login(msg.user, msg.pass);
-  }
-  //Request to save a link
-  if(msg.link) {
-    saveLink(msg.link);
-  }
-  //Request to consume a link
-  if(msg.consume) {
-    consumeLink(msg.time, msg.cid);
-  }
-});
 
 function saveLink(url){
   url = stripFragment(url);
@@ -264,7 +265,43 @@ function clearConsumables() {
   chrome.storage.local.clear();
 }
 
-//////////////////////////Refactor//////////////////////////////////////
+////////////////////////// Refactor //////////////////////////////////////
+
+////////////////////////// Timer /////////////////////////////////////////
+
+//Controls all timing information (tracked tabs, times)
+var TimeManager = {
+  totalTimes: {}, //total time spent at a url in the current browser session
+  startTimes: {}, //the start times, indexed by url, removed when timer stopped
+  tabIds: [], //the tracked tab ids (used for tracking tab switching)
+  prevTabId: -1, //the previous active tab id (checked after tab switch)
+  startTimer: function(url){ //Start the timer for a url, assumes url is unique to a tab (still works if it's not)
+    url = Util.normalize(url);
+    var d = new Date();
+    if(!this.startTimes[url]){
+      this.startTimes[url] = d.getTime();
+    }
+  },
+  stopTimer: function(url) {
+    url = Util.normalize(url);
+    var d = new Date();
+    var time = d.getTime() - this.startTimes[url];
+    if(!this.totalTimes[url]){
+      this.totalTimes[url] = time;
+    }
+    else{
+      this.totalTimes[url] += time;
+    }
+    delete this.startTimes[url];
+  },
+  getTime: function(url){
+    url = Util.normalize(url);
+    this.stopTimer(url);
+    return totalTimes[url];
+  }
+}
+
+////////////////////////// Database Information //////////////////////////////////
 
 var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
 
