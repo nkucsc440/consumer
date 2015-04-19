@@ -13,104 +13,6 @@ function handleLink(info, tab) {
   saveLink(info.linkUrl);
 }
 
-function stripFragment(url) {
-  return url.split('#')[0];
-}
-
-var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
-
-function saveLink(url, cb) {
-  url = stripFragment(url);
-  url = url.replace(/.*?:\/\//g, "");
-
-  chrome.storage.local.get('session', function(c) {
-    if(!c.user) {
-      cb();//no user, don't save
-      return;
-    }
-    //console.log(restServer+'users/'+c.user.uid);
-    $.ajax({
-      method: 'get',
-      url: restServer+'consumables/',
-      success: function(data, textStatus, jqXHR) {
-        if(!findUrl(url, data.consumables)) { //if url is not already in consumables
-          $.ajax({
-            url: restServer+'consumables/',
-            method: 'post',
-            dataType: 'json',
-            data: {
-              consumable: {
-                url: url
-              }
-            },
-            success: function(data2, textStatus, jqXHR) {
-              addConsumable(c.user.uid, data2.consumable._id, cb);
-            }
-          });
-        }
-        else {
-          var cid = data.consumables[findUrl(url, data.consumables)]._id;
-          addConsumable(c.user.uid, cid, cb);
-        }
-      },
-      error: function(jqXHR, textStatus, errorThrown) {
-        console.log('error: '+errorThrown);
-      },
-      complete: function(jqXHR, textStatus) {
-        console.log('complete: '+textStatus);
-      }
-    });
-  });
-}
-
-function addConsumable(uid, cid, cb) {
-  $.ajax({
-    url: restServer+'consumptions/',
-    method: 'post',
-    dataType: 'json',
-    data: {
-      consumption: {
-        _user: uid,
-        _consumable: cid
-      }
-    },
-    success: function(data, textStatus, jqXHR) {
-      console.log(data);
-      return;
-      cb();
-    }
-  });
-}
-
-function findUrl(url, consumables) {
-  for(var i in consumables) {
-    if(consumables[i].url === url)
-      return i;
-  }
-  return false;
-}
-
-function saveTime(url, time, cb) {
-  chrome.storage.local.get('consumables', function(c){
-    if(!c.consumables)
-      c.consumables = {};
-    if(c.consumables[url]){
-      if(c.consumables[url].totalTime) {
-        c.consumables[url].totalTime += time;
-      }
-      else {
-        c.consumables[url].totalTime = time;
-      }
-    }
-    else{
-      c.consumables[url] = {};
-      c.consumables[url].totalTime = time;
-    }
-    chrome.storage.local.set({'consumables': c.consumables});//update the storage
-    if(cb) cb();
-  });
-}
-
 //////////////////////////////// Consume Timer Script ///////////////////////////////////////////////
 
 var tabTimes = {};
@@ -149,6 +51,27 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
   }
 });
 
+function saveTime(url, time, cb) {
+  chrome.storage.local.get('consumables', function(c){
+    if(!c.consumables)
+      c.consumables = {};
+    if(c.consumables[url]){
+      if(c.consumables[url].totalTime) {
+        c.consumables[url].totalTime += time;
+      }
+      else {
+        c.consumables[url].totalTime = time;
+      }
+    }
+    else{
+      c.consumables[url] = {};
+      c.consumables[url].totalTime = time;
+    }
+    chrome.storage.local.set({'consumables': c.consumables});//update the storage
+    if(cb) cb();
+  });
+}
+
 ///////////////////////////// Session Info //////////////////////////////
 var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
 
@@ -185,7 +108,112 @@ chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
   if(msg.login) {
     login(msg.user, msg.pass);
   }
+  //Request to save a link
+  if(msg.link) {
+    saveLink(msg.link);
+  }
+  //Request to consume a link
+  if(msg.consume) {
+    consumeLink(msg.time, msg.cid);
+  }
 });
+
+function saveLink(url){
+  url = stripFragment(url);
+  url = url.replace(/.*?:\/\//g, "");
+  
+  chrome.storage.local.get('user', function(c) {
+    if (!c.user) {
+      return;//nobody is logged in
+    }
+    //console.log(restServer+'users/'+c.user.uid);
+    $.ajax({
+      method: 'get',
+      url: restServer + 'consumables',
+      success: function(data, textStatus, jqXHR) {
+        if (!findUrl(url, data.consumables)) { //if url is not already in consumables add it
+          $.ajax({
+            url: restServer + 'consumables/',
+            method: 'post',
+            dataType: 'json',
+            data: {
+              consumable: {
+                url: url
+              }
+            },
+            success: function(data2, textStatus, jqXHR) {
+              addConsumable(data2.consumable._id);
+            }
+          });
+        } else {
+          var cid = data.consumables[findUrl(url, data.consumables)]._id;
+          addConsumable(cid);
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log('error: ' + errorThrown);
+      },
+      complete: function(jqXHR, textStatus) {
+        console.log('complete: ' + textStatus);
+      }
+    });
+  });
+}
+
+function addConsumable(cid) {
+  chrome.storage.local.get('user', function(c) {
+    console.log(c.user);
+    var user = c.user;
+    $.ajax({
+      url: restServer + 'consumptions/',
+      method: 'post',
+      dataType: 'json',
+      data: {
+        consumption: {
+          "_user": user._id,
+          "_consumable": cid
+        }
+      },
+      success: function(data, textStatus, jqXHR) {
+        console.log('Added: ');
+        console.log(data);
+        startSession();
+      }
+    });
+  });
+}
+
+function consumeLink(time, cid){
+  $.ajax({
+    method: 'put',
+    url: restServer + 'consumptions/' + cid,
+    contentType: "application/json",
+    data: JSON.stringify({
+      "consumption": {
+        "consumeTime": time,
+        "consumed": true
+      }
+    }),
+    error: function(jqXHR, textStatus, errorThrown) {
+      console.log('error: ' + errorThrown);
+    },
+    complete: function(jqXHR, textStatus) {
+      console.log('complete: ' + textStatus);
+      chrome.storage.local.remove('currentConsumption');
+      startSession();
+      chrome.runtime.sendMessage({close: true});
+    }
+  });
+}
+
+function findUrl(url, consumables) {
+  url = url.replace(/.*?:\/\//g, "");
+  for (var i in consumables) {
+    if (consumables[i].url === url)
+      return i;
+  }
+  return false;
+}
 
 function logout(){
   $.ajaxSetup({
@@ -228,6 +256,153 @@ function startSession(){
   });
 }
 
+function stripFragment(url) {
+  return url.split('#')[0];
+}
+
 function clearConsumables() {
   chrome.storage.local.clear();
+}
+
+//////////////////////////Refactor//////////////////////////////////////
+
+var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
+
+var Util = {
+  clearConsumables: function(){
+    chrome.storage.local.clear();
+  },
+  normalize: function(url){ //Strip the fragment from a url (so a single page doesn't appear as a different page)
+    url = url.split('#')[0];
+    url = url.replace(/.*?:\/\//g, "");
+    return url;
+  },
+  findUrl: function(url, consumables){
+    url = url.replace(/.*?:\/\//g, "");
+    for (var i in consumables) {
+      if (consumables[i].url === url)
+        return i;
+    }
+    return false;
+  }
+}
+
+//Manages all information about the current user and the connection to the rest server
+var DatabaseAdaptor = {
+  user: 0, //The current user id
+  setHeader: function(user, pass){ //Equal to login
+    console.log('Setting user info header');
+    $.ajaxSetup({
+      headers: {
+        'Authorization': 'Basic ' + btoa(user + ':' + pass)
+      }
+    });
+  },
+  initSession: function(){ //Initialize the session (and get user id)
+    console.log('Starting new session');
+    $.ajax({
+      method: 'get',
+      url: restServer + 'me',
+      success: function(response, textStatus, jqXHR) {
+        console.log('Logged in ' + response.user._id);
+        DatabaseAdaptor.user = response.user._id;//can't use this because cb is called outside of object
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log(errorThrown);
+      }
+    });
+  },
+  clearHeader: function(){ //Equal to logout
+    $.ajaxSetup({
+      headers: {}
+    });
+    this.user = 0;
+    console.log(DatabaseAdaptor);
+  },
+  completeConsumption: function(cid, time){ //Completes a consumption (sets consume time)
+    //no need to check for user since user is linked to consumption id
+    $.ajax({
+      method: 'put',
+      url: restServer + 'consumptions/' + cid,
+      contentType: "application/json",
+      data: JSON.stringify({
+        "consumption": {
+          "consumeTime": time,
+          "consumed": true
+        }
+      }),
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log('Error completing consumption: ' + errorThrown);
+      },
+      success: function(data, textStatus, jqXHR) {
+        console.log('Completed consumption: ');
+        console.log(data);
+        chrome.storage.local.remove('currentConsumption');//TODO: figure this out
+      }
+    });
+  },
+  addConsumption: function(cid){ //Creates a new consumption (saves link for current user)
+    if(!this.user){
+      console.log('No user logged in');
+      return;
+    }
+    $.ajax({
+      url: restServer + 'consumptions/',
+      method: 'post',
+      dataType: 'json',
+      data: {
+        consumption: {
+          "_user": this.user,
+          "_consumable": cid
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log('Error adding consumption: ' + errorThrown);
+      },
+      success: function(data, textStatus, jqXHR) {
+        console.log('Added consumption: ');
+        console.log(data);
+      }
+    });
+  },
+  addConsumable: function(url){ //Creates a consumable (check for new link and add if necessary) and then adds to user
+    url = Util.normalize(url);
+    if(!this.user){
+      console.log('No user logged in');
+      return;
+    }
+    $.ajax({
+      method: 'get',
+      url: restServer + 'consumables',
+      success: function(data, textStatus, jqXHR) {
+        if (!Util.findUrl(url, data.consumables)) { //if url is not already in consumables add it
+          $.ajax({
+            url: restServer + 'consumables/',
+            method: 'post',
+            dataType: 'json',
+            data: {
+              consumable: {
+                url: url
+              }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+              console.log('Error adding consumable: ' + errorThrown);
+            },
+            success: function(data2, textStatus, jqXHR) {
+              //and then add the consumption
+              DatabaseAdaptor.addConsumption(data2.consumable._id);
+            }
+          });
+        }
+        else {
+          //else just add the consumption
+          var cid = data.consumables[Util.findUrl(url, data.consumables)]._id;
+          DatabaseAdaptor.addConsumption(cid);
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log('Error getting consumables: ' + errorThrown);
+      }
+    });
+  }
 }
