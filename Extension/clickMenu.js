@@ -143,16 +143,31 @@ function stopTimer(tabUrl) {
   delete tabTimes[tabUrl].startTime;
 }
 
-chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
-  if(msg.tab) {
-    tab = msg.tab;
-    watchedTabs.push(tab);
-    tabIds.push(tab.id);
-    startTimer(tab.url);
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+  if(tabIds.indexOf(tabId) !== -1) {
+    //console.log(tab);
   }
+});
+
+///////////////////////////// Session Info //////////////////////////////
+var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
+
+function initTimer(tab){
+  watchedTabs.push(tab);
+  tabIds.push(tab.id);
+  startTimer(tab.url);
+}
+
+chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
+  //Request to start a timer for a tab
+  if(msg.tab) {
+    initTimer(msg.tab);
+  }
+  //Request for all active tabs (timers)
   if(msg.getActive) {
     cb(watchedTabs);
   }
+  //Request for the total time spent on a certain tab
   if(msg.getTime) {
     msg.getTime = msg.getTime.replace(/.*?:\/\//g, "");
     if(tabTimes[msg.getTime].startTime) {
@@ -160,20 +175,59 @@ chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
     }
     cb(tabTimes[msg.getTime].totalTime);
   }
-});
-
-chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-  if(tabIds.indexOf(tabId) !== -1) {
-    //console.log(tab);
+  //Request to close the session
+  if(msg.logout) {
+    logout();
+    cb();
+  }
+  //Request to start a session
+  //Includes callbacks for success/error
+  if(msg.login) {
+    login(msg.user, msg.pass);
   }
 });
 
-chrome.tabs.onActivated.addListener(function(activeInfo) {
-  if(tabIds.indexOf(prevTabId) !== -1) {
-    stopTimer(watchedTabs[tabIds.indexOf(prevTabId)].url);
-  }
-  prevTabId = activeInfo.tabId;
-  if(tabIds.indexOf(activeInfo.tabId) !== -1) {
-    startTimer(watchedTabs[tabIds.indexOf(activeInfo.tabId)].url);
-  }
-});
+function logout(){
+  $.ajaxSetup({
+    headers: {}
+  });
+  chrome.storage.local.remove('user');
+}
+
+function login(user, pass){
+    console.log('beginning login');
+    $.ajaxSetup({
+      headers: {
+        'Authorization': 'Basic ' + btoa(user + ':' + pass)
+      }
+    });
+    startSession();
+}
+
+function startSession(){
+  console.log('starting session');
+  $.ajax({
+    method: 'get',
+    url: restServer + 'me',
+    success: function(responseData, textStatus, jqXHR) {
+      console.log('login success');
+
+      chrome.storage.local.get('user', function(c) {
+        if (!c) {
+          c = {};
+        }
+        c.user = responseData.user;
+        chrome.storage.local.set(c); //update the storage
+        chrome.runtime.sendMessage({update: true}); //send msg to update popup
+      });
+    },
+    error: function(jqXHR, textStatus, errorThrown) {
+      console.log(errorThrown);
+      chrome.runtime.sendMessage({logout: true}); //send msg to update popup
+    }
+  });
+}
+
+function clearConsumables() {
+  chrome.storage.local.clear();
+}

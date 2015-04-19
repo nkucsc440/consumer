@@ -1,6 +1,5 @@
 var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
 
-
 function toggleConsumablesViewLink(e) {
   var showingLinks = !!$('#toggleConsumablesViewLink').data('showingLinks');
   if (showingLinks) {
@@ -60,15 +59,13 @@ function showLinks() {
 
 
 function logoutUser(e) {
-  $.ajaxSetup({
-    headers: {}
+  chrome.runtime.sendMessage({
+    logout: true
+  }, function(){
+    document.getElementById('loginLogoutDiv').innerHTML = '<span id="loginLogoutLink">Login</span>';
+    document.getElementById('loginLogoutLink').addEventListener('click', loginUser);
+    updateActionItems();
   });
-  document.getElementById('loginLogoutDiv').innerHTML = '<span id="loginLogoutLink">Login</span>';
-  document.getElementById('loginLogoutLink').addEventListener('click', loginUser);
-  clearConsumables();
-
-  chrome.storage.local.remove('user');
-  updateActionItems();
 }
 
 // create login form
@@ -83,20 +80,26 @@ function loginUser(e) {
   loginLogoutLink.addEventListener('click', closeLogin);
 }
 
+//Listens for message to update ui
+chrome.runtime.onMessage.addListener(function(msg, sender, cb){
+  if(msg.update){
+    updateActionItems();
+  }
+  if(msg.logout){
+    logoutUser();
+  }
+});
+
 // add credentials to all ajax calls
 function login() {
   var username = $('#username').val();
   var password = $('#password').val();
-  console.log('beginning login');
-
-  $.ajaxSetup({
-    headers: {
-      'Authorization': 'Basic ' + btoa(username + ':' + password)
-    }
+  
+  chrome.runtime.sendMessage({
+    login: true,
+    user: username,
+    pass: password
   });
-
-  // required for prod - not just a test
-  testLogin();
 }
 
 function testLogin() {
@@ -158,10 +161,6 @@ function getActiveTabs(cb) {
   }, function(tabs) {
     cb(tabs);
   });
-}
-
-function clearConsumables() {
-  chrome.storage.local.clear();
 }
 
 function stripFragment(url) {
