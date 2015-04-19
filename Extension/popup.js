@@ -81,12 +81,16 @@ function loginUser(e) {
 }
 
 //Listens for message to update ui
+//Sort of hacky but easier than setting up constant connection
 chrome.runtime.onMessage.addListener(function(msg, sender, cb){
   if(msg.update){
     updateActionItems();
   }
   if(msg.logout){
     logoutUser();
+  }
+  if(msg.close){
+    window.close();
   }
 });
 
@@ -102,32 +106,6 @@ function login() {
   });
 }
 
-function testLogin() {
-  console.log('testing login');
-  $.ajax({
-    method: 'get',
-    // needs to be changed somehow to change depending on email and pw (since uid is unknown at this state) -Cory
-    // I created an endpoint, /me, that uses the user info which is sent with every request -Calvin
-    url: restServer + 'me',
-    success: function(responseData, textStatus, jqXHR) {
-      console.log('login success');
-
-      chrome.storage.local.get('user', function(c) {
-        if (!c) {
-          c = {};
-        }
-        c.user = responseData.user;
-        chrome.storage.local.set(c); //update the storage
-        updateActionItems();
-      });
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      console.log(errorThrown);
-      logoutUser();
-    }
-  });
-}
-
 function closeLogin(e) {
   var loginLogoutDiv = document.getElementById('loginLogoutDiv');
   loginLogoutDiv.innerHTML = '<div id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>';
@@ -137,7 +115,6 @@ function closeLogin(e) {
   loginLogoutLink.addEventListener('click', loginUser);
 }
 
-//can't have a function that references an external variable so need to make one
 function beginConsumption(e) {
   var self = this;
   // use this to update with later
@@ -174,82 +151,16 @@ function saveLinks(e) {
     active: true
   }, function(tabs) {
     //console.log('Saved: ' + tabs[0].url);
-    saveLink(tabs[0].url, function(){
-      testLogin();
-    });
+    saveLink(tabs[0].url);
   });
 }
 
 function saveLink(url, cb) {
   url = stripFragment(url);
   url = url.replace(/.*?:\/\//g, "");
-
-  chrome.storage.local.get('user', function(c) {
-    if (!c.user) {
-      cb(); //no user, don't save
-      return;
-    }
-    //console.log(restServer+'users/'+c.user.uid);
-    $.ajax({
-      method: 'get',
-      url: restServer + 'consumables',
-      success: function(data, textStatus, jqXHR) {
-        if (!findUrl(url, data.consumables)) { //if url is not already in consumables
-          $.ajax({
-            url: restServer + 'consumables/',
-            method: 'post',
-            dataType: 'json',
-            data: {
-              consumable: {
-                url: url
-              }
-            },
-            success: function(data2, textStatus, jqXHR) {
-              addConsumable(data2.consumable._id, cb);
-            }
-          });
-        } else {
-          var cid = data.consumables[findUrl(url, data.consumables)]._id;
-          addConsumable(cid, cb);
-        }
-      },
-      error: function(jqXHR, textStatus, errorThrown) {
-        console.log('error: ' + errorThrown);
-      },
-      complete: function(jqXHR, textStatus) {
-        console.log('complete: ' + textStatus);
-      }
-    });
+  chrome.runtime.sendMessage({
+    link: url
   });
-}
-
-function addConsumable(cid, cb) {
-  chrome.storage.local.get('user', function(c) {
-    var user = c.user;
-    $.ajax({
-      url: restServer + 'consumptions/',
-      method: 'post',
-      dataType: 'json',
-      data: {
-        consumption: {
-          "_user": user._id,
-          "_consumable": cid
-        }
-      },
-      success: function(data, textStatus, jqXHR) {
-        cb();
-      }
-    });
-  });
-}
-
-function findUrl(url, consumables) {
-  url = url.replace(/.*?:\/\//g, "");
-  for (var i in consumables) {
-    if (consumables[i].url === url)
-      return i;
-  }
-  return false;
 }
 
 function containsTab(tab, tabs) {
@@ -318,25 +229,10 @@ function consumeLink(e) {
     }, function(time) {
       chrome.storage.local.get('currentConsumption', function(c) {
         var consumptionId = c.currentConsumption;
-        $.ajax({
-          method: 'put',
-          url: restServer + 'consumptions/' + consumptionId,
-          contentType: "application/json",
-          data: JSON.stringify({
-            "consumption": {
-              "consumeTime": time,
-              "consumed": true
-            }
-          }),
-          error: function(jqXHR, textStatus, errorThrown) {
-            console.log('error: ' + errorThrown);
-          },
-          complete: function(jqXHR, textStatus) {
-            console.log('complete: ' + textStatus);
-            chrome.storage.local.remove('currentConsumption');
-            testLogin();
-            //window.close();
-          }
+        chrome.runtime.sendMessage({
+          consume: true,
+          time: time,
+          cid: consumptionId
         });
       });
     });
