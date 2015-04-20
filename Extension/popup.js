@@ -1,4 +1,4 @@
-var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
+//No state information should be stored in the popup. UI only
 
 function toggleConsumablesViewLink(e) {
   var showingLinks = !!$('#toggleConsumablesViewLink').data('showingLinks');
@@ -11,26 +11,51 @@ function toggleConsumablesViewLink(e) {
 }
 
 function hideLinks() {
-  document.getElementById('consumablesDiv').innerHTML = '';
-  document.getElementById('toggleConsumablesViewLink').innerHTML = 'Show My Consumables';
+  $('#consumablesDiv').html('');
+  $('#toggleConsumablesViewLink').html('Show My Consumables');
 }
 
 //creates a list of all saved links
-//may need to add pages to support lots of links
 function showLinks() {
-  chrome.storage.local.get('user', function(c) {
-    if (!c.user) {
-      return;
-    }
-    
-    //console.log(c);
+  chrome.runtime.sendMessage({
+    type: 'getConsumptions'
+  });
+}
 
-    var user = c.user;
-    var linkList;
-    linkList = '<ul>';
+function logoutUser(e) {
+  chrome.runtime.sendMessage({
+    type: 'logout'
+  })
+  $('#loginLogoutDiv').html('<span id="loginLogoutLink">Login</span>');
+  $('#loginLogoutLink').on('click', loginUser);
+  updateActionItems(false);
+}
 
-    for (var i in user._consumptions) {
-      var consumption = user._consumptions[i];
+// create login form
+function loginUser(e) {
+  var loginForm = '<br><input id="username" type="text" name="username" placeholder="Username"><br>';
+  loginForm += '<input id="password" type="password" name="password" placeholder="Password"><br>';
+  loginForm += '<button id="loginBtn">Login</button>';
+  $('#loginLogoutDiv').append(loginForm);
+  $('#loginBtn').on('click', login);
+  $('#loginLogoutLink').on('', closeLogin);
+  $('#loginLogoutLink').off('', loginUser);
+}
+
+//Listens for message to update ui
+//Sort of hacky but easier than setting up constant connection
+chrome.runtime.onMessage.addListener(function(msg, sender, cb){
+  if(msg.type === 'update'){
+    updateActionItems(true);
+  }
+  //used to be in show links
+  if(msg.type === 'consumptions'){
+    var consumptions = msg.response.user._consumptions;
+    var linkList = '<ul>';
+    //set listeners to links (for custom tab opening)
+    //replicates an <a> with some more js added
+    for (var i in consumptions) {
+      var consumption = consumptions[i];
       var consumable = consumption._consumable;
       linkList += '<li id="' + consumption._id + '" data-url="' + consumable.url + '" class="consumption">' + consumable.url + '<br>';
       if (consumable.consumedCount && consumable.consumedCount > 0) {
@@ -41,56 +66,9 @@ function showLinks() {
       }
       linkList += '</li>';
     }
-
     linkList += '</ul>';
-
-    document.getElementById('consumablesDiv').innerHTML = linkList;
-
-    //set listeners to links (for custom tab opening)
-    //replicates an <a> with some more js added
-    for (var i in user._consumptions) {
-      var consumption = user._consumptions[i];
-    }
-
-    document.getElementById('toggleConsumablesViewLink').innerHTML = 'Hide Consumables';
-
-  });
-}
-
-
-function logoutUser(e) {
-  chrome.runtime.sendMessage({
-    logout: true
-  }, function(){
-    document.getElementById('loginLogoutDiv').innerHTML = '<span id="loginLogoutLink">Login</span>';
-    document.getElementById('loginLogoutLink').addEventListener('click', loginUser);
-    updateActionItems();
-  });
-}
-
-// create login form
-function loginUser(e) {
-  var loginForm = '<br><input id="username" type="text" name="username" placeholder="Username"><br>';
-  loginForm += '<input id="password" type="password" name="password" placeholder="Password"><br>';
-  loginForm += '<button id="loginBtn">Login</button>';
-  document.getElementById('loginLogoutDiv').innerHTML += loginForm;
-  document.getElementById('loginBtn').addEventListener('click', login);
-  var loginLogoutLink = document.getElementById('loginLogoutLink');
-  loginLogoutLink.removeEventListener('click', loginUser);
-  loginLogoutLink.addEventListener('click', closeLogin);
-}
-
-//Listens for message to update ui
-//Sort of hacky but easier than setting up constant connection
-chrome.runtime.onMessage.addListener(function(msg, sender, cb){
-  if(msg.update){
-    updateActionItems();
-  }
-  if(msg.logout){
-    logoutUser();
-  }
-  if(msg.close){
-    window.close();
+    $('#consumablesDiv').html(linkList);
+    $('#toggleConsumablesViewLink').html('Hide Consumables');
   }
 });
 
@@ -100,21 +78,20 @@ function login() {
   var password = $('#password').val();
   
   chrome.runtime.sendMessage({
-    login: true,
+    type: 'login',
     user: username,
     pass: password
   });
 }
 
 function closeLogin(e) {
-  var loginLogoutDiv = document.getElementById('loginLogoutDiv');
-  loginLogoutDiv.innerHTML = '<div id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>';
+  $('#loginLogoutDiv').html('<div id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>');
 
-  var loginLogoutLink = document.getElementById('loginLogoutLink');
-  loginLogoutLink.removeEventListener('click', closeLogin);
-  loginLogoutLink.addEventListener('click', loginUser);
+  $('#loginLogoutLink').off('', closeLogin);
+  $('#loginLogoutLink').on('', loginUser);
 }
 
+//TODO: figure this out
 function beginConsumption(e) {
   var self = this;
   // use this to update with later
@@ -127,16 +104,9 @@ function beginConsumption(e) {
     url: link
   }, function(tab) {
     chrome.runtime.sendMessage({
+      type: 'startTimer',
       tab: tab
     });
-  });
-}
-
-function getActiveTabs(cb) {
-  chrome.runtime.sendMessage({
-    getActive: true
-  }, function(tabs) {
-    cb(tabs);
   });
 }
 
@@ -151,61 +121,63 @@ function saveLinks(e) {
   });
 }
 
-function saveLink(url, cb) {
+function saveLink(url) {
   chrome.runtime.sendMessage({
-    link: url
+    type: 'saveLink',
+    url: url
   });
 }
 
-function containsTab(tab, tabs) {
-  for (var i in tabs) {
-    if (tabs[i].id === tab.id)
-      return i;
-  }
-  return false;
+function containsTab(tab, trackedTabs) {
+  return (trackedTabs.indexOf(tab.id) !== -1);
 }
 
-function updateActionItems() {
-  chrome.storage.local.get('user', function(c) {
-    var user = c.user;
-    chrome.tabs.query({
-      currentWindow: true,
-      active: true
-    }, function(currentTab) {
-      currentTab = currentTab[0]; //only 1 active tab, but still array for some reason
-      getActiveTabs(function(tabs) {
-
-        document.getElementById('main').innerHTML = '';
-
-        if (user) { //if logged in
-
-          //////////// Consume later / Done consuming
-          if (containsTab(currentTab, tabs)) { //if current tab is already a consumable
-            document.getElementById('main').innerHTML += '<div class="popupItem" id="consumeDiv"><span id="consumeLink">Done consuming</span></div>';
-          } else {
-            document.getElementById('main').innerHTML += '<div class="popupItem"><span id="saveLink">Consume this page later</span></div>';
-          }
-
-          //////////// Show Consumables btn
-          document.getElementById('main').innerHTML += '<div class="popupItem"><span id="toggleConsumablesViewLink">Show My Consumables</span></div>';
-          document.getElementById('main').innerHTML += '<div id="consumablesDiv"></div>';
-
-          //////////// Logout btn
-          document.getElementById('main').innerHTML += '<div class="popupItem" id="loginLogoutDiv"><span id="loginLogoutLink">Logout</span></div>';
-          document.getElementById('loginLogoutLink').addEventListener('click', logoutUser);
+//userState is login/logout status
+function updateActionItems(userState) {
+  chrome.tabs.query({
+    currentWindow: true,
+    active: true
+  }, function(currentTab) {
+    currentTab = currentTab[0]; //only 1 active tab, but still array for some reason
+    chrome.runtime.sendMessage({
+      type: 'getActiveTabs'
+    }, function(tabs) {
+      $('#main').html('');
+      if (userState) { //if logged in
+        //////////// Consume later / Done consuming
+        if (containsTab(currentTab, tabs)) { //if current tab is already a consumable
+          $('#main').append('<div class="popupItem" id="consumeDiv"><span id="consumeLink">Done consuming</span></div>');
         } else {
-          //////////// Login btn
-          document.getElementById('main').innerHTML += '<div class="popupItem" id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>';
-          document.getElementById('loginLogoutLink').addEventListener('click', loginUser);
+          $('#main').append('<div class="popupItem"><span id="saveLink">Consume this page later</span></div>');
         }
-      });
+
+        //////////// Show Consumables btn
+        $('#main').append('<div class="popupItem"><span id="toggleConsumablesViewLink">Show My Consumables</span></div>');
+        $('#main').append('<div id="consumablesDiv"></div>');
+
+        //////////// Logout btn
+        $('#main').append('<div class="popupItem" id="loginLogoutDiv"><span id="loginLogoutLink">Logout</span></div>');
+        $('#loginLogoutLink').on('click', logoutUser);
+      }
+      else {
+        //////////// Login btn
+        $('#main').append('<div class="popupItem" id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>');
+        $('#loginLogoutLink').on('click', loginUser);
+      }
     });
   });
 }
 
+//Change ui after checking state
+function checkState(){
+  chrome.runtime.sendMessage({
+    type: 'checkState'
+  }, updateActionItems);
+}
+
 //very messy because listeners must be added after page is modified
 document.addEventListener('DOMContentLoaded', function() {
-  updateActionItems();
+  checkState();
   $('#main').on('click', '#toggleConsumablesViewLink', toggleConsumablesViewLink);
   $('#main').on('click', '#saveLink', saveLinks);
   $('#main').on('click', '#consumeLink', consumeLink);
@@ -219,16 +191,8 @@ function consumeLink(e) {
   }, function(currentTab) {
     currentTab = currentTab[0];
     chrome.runtime.sendMessage({
-      getTime: currentTab.url
-    }, function(time) {
-      chrome.storage.local.get('currentConsumption', function(c) {
-        var consumptionId = c.currentConsumption;
-        chrome.runtime.sendMessage({
-          consume: true,
-          time: time,
-          cid: consumptionId
-        });
-      });
+      type: 'consumeLink',
+      url: currentTab.url
     });
   });
 }

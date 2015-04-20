@@ -1,4 +1,6 @@
-///////////////////////////////// Right click menu ///////////////////////////////////////
+//////////////////////// Event Handlers /////////////////////////////
+
+//Right Click
 var title = "Consume later";
 //Button only appears when right clicking a link
 var id = chrome.contextMenus.create({
@@ -9,265 +11,81 @@ var id = chrome.contextMenus.create({
 
 function handleLink(info, tab) {
   //console.log(info.linkUrl);
-  saveLink(info.linkUrl);
+  SessionManager.addConsumable(info.linkUrl);
 }
 
-//////////////////////// Message Handlers /////////////////////////////
+//Tab switching
+chrome.tabs.onActivated.addListener(function(activeInfo) {
+  //Stop the timer if necessary
+  if(TimeManager.tabIds.indexOf(TimeManager.prevTabId) !== -1) {
+    chrome.tabs.get(TimeManager.prevTabId, function(t){
+      TimeManager.stopTimer(t.url);
+      //Update the previous tab id
+      TimeManager.prevTabId = activeInfo.tabId;
+      //Start the timer if necessary
+      if(TimeManager.tabIds.indexOf(activeInfo.tabId) !== -1) {
+        chrome.tabs.get(TimeManager.prevTabId, function(t){
+          TimeManager.startTimer(t.url);
+        })
+      }
+    })
+  }
+  else{
+    //Update the previous tab id
+    TimeManager.prevTabId = activeInfo.tabId;
+    //Start the timer if necessary
+    if(TimeManager.tabIds.indexOf(activeInfo.tabId) !== -1) {
+      chrome.tabs.get(TimeManager.prevTabId, function(t){
+        TimeManager.startTimer(t.url);
+      })
+    }
+  }
+});
 
+//Receiving message from popup
 chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
-  //Request to start a timer for a tab
-  if(msg.tab) {
-    initTimer(msg.tab);
-  }
-  //Request for all active tabs (timers)
-  if(msg.getActive) {
-    cb(watchedTabs);
-  }
-  //Request for the total time spent on a certain tab
-  if(msg.getTime) {
-    msg.getTime = msg.getTime.replace(/.*?:\/\//g, "");
-    if(tabTimes[msg.getTime].startTime) {
-      stopTimer(msg.getTime);
-    }
-    cb(tabTimes[msg.getTime].totalTime);
-  }
-  //Request to close the session
-  if(msg.logout) {
-    logout();
-    cb();
-  }
-  //Request to start a session
-  //Includes callbacks for success/error
-  if(msg.login) {
-    login(msg.user, msg.pass);
-  }
-  //Request to save a link
-  if(msg.link) {
-    saveLink(msg.link);
-  }
-  //Request to consume a link
-  if(msg.consume) {
-    consumeLink(msg.time, msg.cid);
-  }
-});
-
-//////////////////////////////// Consume Timer Script ///////////////////////////////////////////////
-
-var tabTimes = {};
-var tabIds = [];
-var watchedTabs = [];
-var prevTabId = -1;
-
-//creates the start time
-function startTimer(tabUrl) {
-  tabUrl = tabUrl.replace(/.*?:\/\//g, "");
-  var d = new Date();
-  if(!tabTimes[tabUrl])
-    tabTimes[tabUrl] = {};
-  tabTimes[tabUrl].startTime = d.getTime();
-}
-
-//stops timer and deletes the startTime property
-function stopTimer(tabUrl) {
-  tabUrl = tabUrl.replace(/.*?:\/\//g, "");
-  var d = new Date();
-  if(!tabTimes[tabUrl].totalTime)
-    tabTimes[tabUrl].totalTime = 0;
-  tabTimes[tabUrl].totalTime += d.getTime() - tabTimes[tabUrl].startTime;
-  var time = d.getTime() - tabTimes[tabUrl].startTime;
-  saveTime(tabUrl, time, function(){
-    chrome.storage.local.get('consumables', function(c){
-      console.log(c);
-    });
-  });
-  delete tabTimes[tabUrl].startTime;
-}
-
-chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-  if(tabIds.indexOf(tabId) !== -1) {
-    //console.log(tab);
+  switch(msg.type){
+    case 'startTimer':
+      //Need to start timer for the new tab
+      TimeManager.initTimer(msg.tab);
+      break;
+    case 'getActiveTabs':
+      //Request for all tracked tab ids
+      cb(TimeManager.tabIds);
+      break;
+    case 'getTime':
+      //Request for time spent at a specific url
+      cb(TimeManager.getTime(msg.url));
+      break;
+    case 'logout':
+      //Logout request(clear header)
+      SessionManager.clearHeader();
+      break;
+    case 'login':
+      //Login request (set header)
+      SessionManager.setHeader(msg.user, msg.pass);
+      SessionManager.initSession();
+      break;
+    case 'saveLink':
+      //Save a consumable for the current user
+      SessionManager.addConsumable(msg.url);
+      break;
+    case 'consumeLink':
+      //Complete consumption of a link
+      SessionManager.completeConsumption(msg.url);
+      break;
+    case 'getConsumptions':
+      //Get all consumptions for current user
+      SessionManager.getConsumptions();
+      break;
+    case 'checkState':
+      //Check if user logged in
+      cb(SessionManager.getState());
+      break;
   }
 });
 
-function saveTime(url, time, cb) {
-  chrome.storage.local.get('consumables', function(c){
-    if(!c.consumables)
-      c.consumables = {};
-    if(c.consumables[url]){
-      if(c.consumables[url].totalTime) {
-        c.consumables[url].totalTime += time;
-      }
-      else {
-        c.consumables[url].totalTime = time;
-      }
-    }
-    else{
-      c.consumables[url] = {};
-      c.consumables[url].totalTime = time;
-    }
-    chrome.storage.local.set({'consumables': c.consumables});//update the storage
-    if(cb) cb();
-  });
-}
-
-///////////////////////////// Session Info //////////////////////////////
-var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
-
-function initTimer(tab){
-  watchedTabs.push(tab);
-  tabIds.push(tab.id);
-  startTimer(tab.url);
-}
-
-function saveLink(url){
-  url = stripFragment(url);
-  url = url.replace(/.*?:\/\//g, "");
-  
-  chrome.storage.local.get('user', function(c) {
-    if (!c.user) {
-      return;//nobody is logged in
-    }
-    //console.log(restServer+'users/'+c.user.uid);
-    $.ajax({
-      method: 'get',
-      url: restServer + 'consumables',
-      success: function(data, textStatus, jqXHR) {
-        if (!findUrl(url, data.consumables)) { //if url is not already in consumables add it
-          $.ajax({
-            url: restServer + 'consumables/',
-            method: 'post',
-            dataType: 'json',
-            data: {
-              consumable: {
-                url: url
-              }
-            },
-            success: function(data2, textStatus, jqXHR) {
-              addConsumable(data2.consumable._id);
-            }
-          });
-        } else {
-          var cid = data.consumables[findUrl(url, data.consumables)]._id;
-          addConsumable(cid);
-        }
-      },
-      error: function(jqXHR, textStatus, errorThrown) {
-        console.log('error: ' + errorThrown);
-      },
-      complete: function(jqXHR, textStatus) {
-        console.log('complete: ' + textStatus);
-      }
-    });
-  });
-}
-
-function addConsumable(cid) {
-  chrome.storage.local.get('user', function(c) {
-    console.log(c.user);
-    var user = c.user;
-    $.ajax({
-      url: restServer + 'consumptions/',
-      method: 'post',
-      dataType: 'json',
-      data: {
-        consumption: {
-          "_user": user._id,
-          "_consumable": cid
-        }
-      },
-      success: function(data, textStatus, jqXHR) {
-        console.log('Added: ');
-        console.log(data);
-        startSession();
-      }
-    });
-  });
-}
-
-function consumeLink(time, cid){
-  $.ajax({
-    method: 'put',
-    url: restServer + 'consumptions/' + cid,
-    contentType: "application/json",
-    data: JSON.stringify({
-      "consumption": {
-        "consumeTime": time,
-        "consumed": true
-      }
-    }),
-    error: function(jqXHR, textStatus, errorThrown) {
-      console.log('error: ' + errorThrown);
-    },
-    complete: function(jqXHR, textStatus) {
-      console.log('complete: ' + textStatus);
-      chrome.storage.local.remove('currentConsumption');
-      startSession();
-      chrome.runtime.sendMessage({close: true});
-    }
-  });
-}
-
-function findUrl(url, consumables) {
-  url = url.replace(/.*?:\/\//g, "");
-  for (var i in consumables) {
-    if (consumables[i].url === url)
-      return i;
-  }
-  return false;
-}
-
-function logout(){
-  $.ajaxSetup({
-    headers: {}
-  });
-  chrome.storage.local.remove('user');
-}
-
-function login(user, pass){
-    console.log('beginning login');
-    $.ajaxSetup({
-      headers: {
-        'Authorization': 'Basic ' + btoa(user + ':' + pass)
-      }
-    });
-    startSession();
-}
-
-function startSession(){
-  console.log('starting session');
-  $.ajax({
-    method: 'get',
-    url: restServer + 'me',
-    success: function(responseData, textStatus, jqXHR) {
-      console.log('login success');
-
-      chrome.storage.local.get('user', function(c) {
-        if (!c) {
-          c = {};
-        }
-        c.user = responseData.user;
-        chrome.storage.local.set(c); //update the storage
-        chrome.runtime.sendMessage({update: true}); //send msg to update popup
-      });
-    },
-    error: function(jqXHR, textStatus, errorThrown) {
-      console.log(errorThrown);
-      chrome.runtime.sendMessage({logout: true}); //send msg to update popup
-    }
-  });
-}
-
-function stripFragment(url) {
-  return url.split('#')[0];
-}
-
-function clearConsumables() {
-  chrome.storage.local.clear();
-}
-
-////////////////////////// Refactor //////////////////////////////////////
-
-////////////////////////// Timer /////////////////////////////////////////
+//////////////////////////////// Timer /////////////////////////////////////////
 
 //Controls all timing information (tracked tabs, times)
 var TimeManager = {
@@ -275,6 +93,10 @@ var TimeManager = {
   startTimes: {}, //the start times, indexed by url, removed when timer stopped
   tabIds: [], //the tracked tab ids (used for tracking tab switching)
   prevTabId: -1, //the previous active tab id (checked after tab switch)
+  initTimer: function(tab){ //start the tiemr for a new tab
+    this.tabIds.push(tab.id);
+    this.startTimer(tab.url);
+  },
   startTimer: function(url){ //Start the timer for a url, assumes url is unique to a tab (still works if it's not)
     url = Util.normalize(url);
     var d = new Date();
@@ -297,13 +119,11 @@ var TimeManager = {
   getTime: function(url){
     url = Util.normalize(url);
     this.stopTimer(url);
-    return totalTimes[url];
+    return this.totalTimes[url];
   }
 }
 
-////////////////////////// Database Information //////////////////////////////////
-
-var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
+//////////////////////////////////// Util ////////////////////////////////////////
 
 var Util = {
   clearConsumables: function(){
@@ -324,9 +144,14 @@ var Util = {
   }
 }
 
+////////////////////////// Database Information //////////////////////////////////
+
+var restServer = 'https://consumit-rest-nodejs.herokuapp.com/api/';
+
 //Manages all information about the current user and the connection to the rest server
-var DatabaseAdaptor = {
+var SessionManager = {
   user: 0, //The current user id
+  cids: {}, //consumptions ids indexed by url
   setHeader: function(user, pass){ //Equal to login
     console.log('Setting user info header');
     $.ajaxSetup({
@@ -342,7 +167,10 @@ var DatabaseAdaptor = {
       url: restServer + 'me',
       success: function(response, textStatus, jqXHR) {
         console.log('Logged in ' + response.user._id);
-        DatabaseAdaptor.user = response.user._id;//can't use this because cb is called outside of object
+        SessionManager.user = response.user._id;//can't use this because cb is called outside of object
+        chrome.runtime.sendMessage({
+          type: 'update'
+        });
       },
       error: function(jqXHR, textStatus, errorThrown) {
         console.log(errorThrown);
@@ -354,10 +182,31 @@ var DatabaseAdaptor = {
       headers: {}
     });
     this.user = 0;
-    console.log(DatabaseAdaptor);
+    console.log(SessionManager);
   },
-  completeConsumption: function(cid, time){ //Completes a consumption (sets consume time)
-    //no need to check for user since user is linked to consumption id
+  completeConsumption: function(url, time){ //Completes a consumption (sets consume time)
+    url = Util.normalize(url);
+    if(!this.user){
+      console.log('No user logged in');
+      return;
+    }
+    $.ajax({
+      method: 'get',
+      url: restServer + 'consumables',
+      success: function(data, textStatus, jqXHR) {
+        var cid = data.consumables[Util.findUrl(url, data.consumables)]._id;
+        var time = TimeManager.getTime(url);
+        alert('Something broken');
+        return;
+        //Something is broken here.  Crashes the server (after receiving response)
+        SessionManager.consumeLink(time, cid);
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log('Error getting consumables: ' + errorThrown);
+      }
+    });
+  },
+  consumeLink: function (time, cid){
     $.ajax({
       method: 'put',
       url: restServer + 'consumptions/' + cid,
@@ -371,10 +220,8 @@ var DatabaseAdaptor = {
       error: function(jqXHR, textStatus, errorThrown) {
         console.log('Error completing consumption: ' + errorThrown);
       },
-      success: function(data, textStatus, jqXHR) {
-        console.log('Completed consumption: ');
-        console.log(data);
-        chrome.storage.local.remove('currentConsumption');//TODO: figure this out
+      complete: function(jqXHR, textStatus) {
+        console.log('Completed consumption: ' + textStatus);
       }
     });
   },
@@ -427,19 +274,42 @@ var DatabaseAdaptor = {
             },
             success: function(data2, textStatus, jqXHR) {
               //and then add the consumption
-              DatabaseAdaptor.addConsumption(data2.consumable._id);
+              SessionManager.addConsumption(data2.consumable._id);
             }
           });
         }
         else {
           //else just add the consumption
           var cid = data.consumables[Util.findUrl(url, data.consumables)]._id;
-          DatabaseAdaptor.addConsumption(cid);
+          SessionManager.addConsumption(cid);
         }
       },
       error: function(jqXHR, textStatus, errorThrown) {
         console.log('Error getting consumables: ' + errorThrown);
       }
     });
+  },
+  getConsumptions: function(){
+    if(!this.user){
+      console.log('No user logged in');
+      return;
+    }
+    $.ajax({
+      url: restServer + 'users/' + this.user,
+      method: 'get',
+      dataType: 'json',
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log('Error getting consumptions: ' + errorThrown);
+      },
+      success: function(data){
+        chrome.runtime.sendMessage({
+          type: 'consumptions',
+          response: data
+        });
+      }
+    });
+  },
+  getState: function(){
+    return this.user !== 0;
   }
 }
