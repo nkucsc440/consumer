@@ -42,6 +42,19 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
   }
 });
 
+chrome.tabs.onRemoved.addListener(function(tabId){
+  if(TimeManager.tabIds.indexOf(tabId) !== -1){
+    TimeManager.stopTimer(TimeManager.tabToUrl[tabId]);
+  }
+  if(TimeManager.prevTabId === tabId){
+    TimeManager.prevTabId = -1;
+  }
+});
+
+chrome.tabs.onUpdated.addListener(function(tabId, info, tab){
+  TimeManager.tabToUrl[tabId] = tab.url;
+});
+
 //Receiving message from popup
 chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
   switch(msg.type){
@@ -89,6 +102,7 @@ chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
 
 //Controls all timing information (tracked tabs, times)
 var TimeManager = {
+  tabToUrl: {}, //urls indexed by tabId
   totalTimes: {}, //total time spent at a url in the current browser session
   startTimes: {}, //the start times, indexed by url, removed when timer stopped
   tabIds: [], //the tracked tab ids (used for tracking tab switching)
@@ -106,6 +120,8 @@ var TimeManager = {
   },
   stopTimer: function(url) {
     url = Util.normalize(url);
+    if(!this.startTimes[url])
+      return;
     var d = new Date();
     var time = d.getTime() - this.startTimes[url];
     if(!this.totalTimes[url]){
