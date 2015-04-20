@@ -196,9 +196,6 @@ var SessionManager = {
       success: function(data, textStatus, jqXHR) {
         var cid = data.consumables[Util.findUrl(url, data.consumables)]._id;
         var time = TimeManager.getTime(url);
-        alert('Something broken');
-        return;
-        //Something is broken here.  Crashes the server (after receiving response)
         SessionManager.consumeLink(time, cid);
       },
       error: function(jqXHR, textStatus, errorThrown) {
@@ -207,16 +204,18 @@ var SessionManager = {
     });
   },
   consumeLink: function (time, cid){
+    alert('Still need to change cid to consumption not consumable!');
+    return;
     $.ajax({
       method: 'put',
       url: restServer + 'consumptions/' + cid,
-      contentType: "application/json",
-      data: JSON.stringify({
+      contentType: 'json',
+      data: {
         "consumption": {
           "consumeTime": time,
           "consumed": true
         }
-      }),
+      },
       error: function(jqXHR, textStatus, errorThrown) {
         console.log('Error completing consumption: ' + errorThrown);
       },
