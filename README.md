@@ -1,6 +1,9 @@
 This is an Chromium extension.
+
 Install:
+
 1. Go to chrome://extensions/ and click the Developer Mode button in the top right corner
+
 2. Select "Load unpacked extension" and navigate to the Extension folder.
 
 OR
