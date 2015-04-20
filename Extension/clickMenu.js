@@ -134,11 +134,19 @@ var Util = {
     url = url.replace(/.*?:\/\//g, "");
     return url;
   },
-  findUrl: function(url, consumables){
-    url = url.replace(/.*?:\/\//g, "");
+  findUrl: function(url, consumables){ //check if the url has a consumable connected with it
+    url = Util.normalize(url);
     for (var i in consumables) {
       if (consumables[i].url === url)
         return i;
+    }
+    return false;
+  },
+  findCid: function(url, consumptions){ //get the consumption id of the url and current user
+    for(var i in consumptions){
+      if(consumptions[i]._consumable.url === url){
+        return consumptions[i]._id;
+      }
     }
     return false;
   }
@@ -192,10 +200,12 @@ var SessionManager = {
     }
     $.ajax({
       method: 'get',
-      url: restServer + 'consumables',
+      url: restServer + 'me',
       success: function(data, textStatus, jqXHR) {
-        var cid = data.consumables[Util.findUrl(url, data.consumables)]._id;
+        var cid = Util.findCid(url, data.user._consumptions);
         var time = TimeManager.getTime(url);
+        //console.log(cid);
+        //console.log(time);
         SessionManager.consumeLink(time, cid);
       },
       error: function(jqXHR, textStatus, errorThrown) {
@@ -204,23 +214,22 @@ var SessionManager = {
     });
   },
   consumeLink: function (time, cid){
-    alert('Still need to change cid to consumption not consumable!');
-    return;
     $.ajax({
       method: 'put',
       url: restServer + 'consumptions/' + cid,
-      contentType: 'json',
-      data: {
+      contentType: "application/json",
+      data: JSON.stringify({
         "consumption": {
           "consumeTime": time,
           "consumed": true
         }
-      },
+      }),
       error: function(jqXHR, textStatus, errorThrown) {
         console.log('Error completing consumption: ' + errorThrown);
       },
-      complete: function(jqXHR, textStatus) {
-        console.log('Completed consumption: ' + textStatus);
+      success: function(data, textStatus, jqXHR) {
+        console.log('Completed consumption: ');
+        console.log(data);
       }
     });
   },
