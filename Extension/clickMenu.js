@@ -42,6 +42,7 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
   }
 });
 
+//Tracked tab being closed
 chrome.tabs.onRemoved.addListener(function(tabId){
   if(TimeManager.tabIds.indexOf(tabId) !== -1){
     TimeManager.stopTimer(TimeManager.tabToUrl[tabId]);
@@ -52,7 +53,15 @@ chrome.tabs.onRemoved.addListener(function(tabId){
 });
 
 chrome.tabs.onUpdated.addListener(function(tabId, info, tab){
-  TimeManager.tabToUrl[tabId] = tab.url;
+  if(TimeManager.prevTabId === tabId && TimeManager.tabToUrl[tabId]){
+    if(info.status === 'loading'){
+      if(Util.normalize(info.url) !== TimeManager.tabToUrl[TimeManager.prevTabId]){
+        TimeManager.stopTimer(TimeManager.tabToUrl[TimeManager.prevTabId]);
+        delete TimeManager.tabIds[TimeManager.tabIds.indexOf(tab.id)];
+      }
+    }
+  }
+  TimeManager.tabToUrl[tabId] = Util.normalize(tab.url);
 });
 
 //Receiving message from popup
