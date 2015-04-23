@@ -12,7 +12,7 @@ function toggleMyConsumablesViewLink(e) {
 
 function hideMyLinks() {
   $('#myConsumablesDiv').html('');
-  $('#toggleMyConsumablesViewLink').html('Show My Consumables');
+  $('#toggleMyConsumablesViewLink').html('+ My Consumables');
 }
 
 //creates a list of all saved links
@@ -34,7 +34,7 @@ function toggleTopConsumablesViewLink(e) {
 
 function hideTopLinks() {
   $('#topConsumablesDiv').html('');
-  $('#toggleTopConsumablesViewLink').html('Show Top Consumables');
+  $('#toggleTopConsumablesViewLink').html('+ Top Consumables');
 }
 
 //creates a list of top links
@@ -49,19 +49,19 @@ function logoutUser(e) {
     type: 'logout'
   })
   $('#loginLogoutDiv').html('<span id="loginLogoutLink">Login</span>');
-  $('#loginLogoutLink').on('click', loginUser);
+  $('#loginLogoutLink').on('click', showLoginForm);
   updateActionItems(false);
 }
 
 // create login form
-function loginUser(e) {
-  var loginForm = '<br><input id="username" type="text" name="username" placeholder="Username"><br>';
-  loginForm += '<input id="password" type="password" name="password" placeholder="Password"><br>';
-  loginForm += '<button id="loginBtn">Login</button>';
-  $('#loginLogoutDiv').append(loginForm);
+function showLoginForm(e) {
+  var loginForm = '<div class="popupItem loginForm"><input id="username" type="text" name="username" placeholder="Username">';
+  loginForm += '<input id="password" type="password" name="password" placeholder="Password">';
+  loginForm += '<button id="loginBtn">Login</button></div>';
+  $('#main').append(loginForm);
   $('#loginBtn').on('click', login);
   $('#loginLogoutLink').on('', closeLogin);
-  $('#loginLogoutLink').off('', loginUser);
+  $('#loginLogoutLink').off('', showLoginForm);
 }
 
 //Listens for message to update ui
@@ -82,7 +82,7 @@ chrome.runtime.onMessage.addListener(function(msg, sender, cb){
     }
     linkList += '</ul>';
     $('#myConsumablesDiv').html(linkList);
-    $('#toggleMyConsumablesViewLink').html('Hide My Consumables');
+    $('#toggleMyConsumablesViewLink').html('- My Consumables');
   }
   else if (msg.type === 'topConsumables') {
     var consumables = msg.response.consumables;
@@ -93,7 +93,7 @@ chrome.runtime.onMessage.addListener(function(msg, sender, cb){
     }
     linkList += '</ul>';
     $('#topConsumablesDiv').html(linkList);
-    $('#toggleTopConsumablesViewLink').html('Hide Top Consumables');
+    $('#toggleTopConsumablesViewLink').html('- Top Consumables');
   }
 });
 
@@ -124,7 +124,7 @@ function closeLogin(e) {
   $('#loginLogoutDiv').html('<div id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>');
 
   $('#loginLogoutLink').off('', closeLogin);
-  $('#loginLogoutLink').on('', loginUser);
+  $('#loginLogoutLink').on('', showLoginForm);
 }
 
 //TODO: figure this out
@@ -182,30 +182,42 @@ function updateActionItems(userState) {
       if (userState) { //if logged in
         //////////// Consume later / Done consuming
         if (containsTab(currentTab, tabs)) { //if current tab is already a consumable
-          $('#main').append('<div class="popupItem" id="consumeDiv"><span id="consumeLink">Done consuming</span></div>');
+          // $('#main').append('<div class="popupItem clickable" id="consumeLink" id="consumeLink">Done consuming</div>');
+          $('#consumeLink').show();
+          $('#consumeLink').text('Done Consuming');
+          $('#titleDiv').on('click', '#consumeLink', consumeLink);
+          $('#saveLink').hide();
         } else {
-          $('#main').append('<div class="popupItem"><span id="saveLink">Consume this page later</span></div>');
+          // $('#main').append('<div class="popupItem clickable" id="saveLink">Add Current Page</div>');
+          $('#saveLink').show();
+          $('#saveLink').text('Add Current Page');
+          $('#titleDiv').on('click', '#saveLink', saveLinks);
+          $('#consumeLink').hide();
         }
       }
 
-      $('#main').append('<div class="popupItem"><span id="toggleTopConsumablesViewLink">Show Top Consumables</span></div>');
+      $('#main').append('<div class="popupItem clickable" id="toggleTopConsumablesViewLink">+  Top Consumables</div>');
       $('#main').append('<div id="topConsumablesDiv" class="consumableList"></div>');
+      $('#main').on('click', '#toggleTopConsumablesViewLink', toggleTopConsumablesViewLink);
 
       if (userState) {
         //////////// Show My Consumables btn
-        $('#main').append('<div class="popupItem"><span id="toggleMyConsumablesViewLink">Show My Consumables</span></div>');
+        $('#main').append('<div class="popupItem clickable" id="toggleMyConsumablesViewLink">+  My Consumables</div>');
         $('#main').append('<div id="myConsumablesDiv" class="consumableList"></div>');
+        $('#main').on('click', '#toggleMyConsumablesViewLink', toggleMyConsumablesViewLink);
       }
 
       if (userState) {
         //////////// Logout btn
-        $('#main').append('<div class="popupItem" id="loginLogoutDiv"><span id="loginLogoutLink">Logout</span></div>');
-        $('#loginLogoutLink').on('click', logoutUser);
+        // $('#main').append('<div class="popupItem" id="loginLogoutDiv"><span id="loginLogoutLink">Logout</span></div>');
+        $('#loginLogoutDiv').text('Logout');
+        $('#loginLogoutDiv').on('click', logoutUser);
       }
       else {
         //////////// Login btn
-        $('#main').append('<div class="popupItem" id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>');
-        $('#loginLogoutLink').on('click', loginUser);
+        // $('#main').append('<div class="popupItem" id="loginLogoutDiv"><span id="loginLogoutLink">Login</span></div>');
+        $('#loginLogoutDiv').text('Login');
+        $('#loginLogoutDiv').on('click', showLoginForm);
       }
     });
   });
@@ -218,17 +230,8 @@ function checkState(){
   }, updateActionItems);
 }
 
-//very messy because listeners must be added after page is modified
-document.addEventListener('DOMContentLoaded', function() {
-  checkState();
-  $('#main').on('click', '#toggleMyConsumablesViewLink', toggleMyConsumablesViewLink);
-  $('#main').on('click', '#toggleTopConsumablesViewLink', toggleTopConsumablesViewLink);
-  $('#main').on('click', '#saveLink', saveLinks);
-  $('#main').on('click', '#consumeLink', consumeLink);
-  $('#main').on('click', '.consumption', beginConsumption);
-});
-
 function consumeLink(e) {
+  console.log('done consuming')
   chrome.tabs.query({
     currentWindow: true,
     active: true
@@ -240,3 +243,9 @@ function consumeLink(e) {
     });
   });
 }
+
+//very messy because listeners must be added after page is modified
+document.addEventListener('DOMContentLoaded', function() {
+  checkState();
+  $('#main').on('click', '.consumption', beginConsumption);
+});

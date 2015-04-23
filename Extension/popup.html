@@ -7,28 +7,34 @@
     body {
       margin: 0px;
       padding: 0px;
-      text-align: center;
+      /*text-align: center;*/
       font-family: sans-serif;
       width: 400px;
-    }
-    div.popupItem {
-      padding: 10px 0;
-      border-top: 1px solid #aaa;
-      border-bottom: 1px solid #bbb;
-      cursor: pointer;
-    }
-    li {
-      cursor: pointer;
-      border-top: 1px solid #bbb;
-      border-bottom: 1px solid #ccc;
-      padding: 3px 0;
+
     }
     #titleDiv {
-      background: #444;
-      color: white;
-      font-size: 20px;
+      background: #611427;
+      /*color: #EFECCA;*/
       cursor: initial;
-      padding: 10px 0;
+      padding: 10px;
+      color: #DDDCC5;
+      min-height: 2em;
+    }
+    #titleText {
+      font-size: 20px;
+      font-weight: bold;
+      float: left;
+    }
+    #titleDiv .clickable {
+      float:right;
+      padding: 5px;
+      border-radius: 2px;
+    }
+    #titleDiv .clickable:hover {
+      background: #6E172C;
+    }
+    #titleDiv .clickable:active {
+      background: #958976;
     }
     a {
       text-decoration: none;
@@ -37,31 +43,64 @@
       list-style-type: none;
       margin: 0;
       padding: 0;
-      background: #eee;
+      background: #DDDCC5;
     }
-    div:hover {
-      background: #aaa;
+    #main > div:hover {
+      background: #998D79;
+    }
+    #main > div:active {
+      background: #611427;
     }
     li:hover {
-      background: #fafafa
-    }
-    .consumption {
-      color: blue;
+      background: #E3E2CA;
     }
     #main {
-      padding: 0;
-      background: #cccccc;
+      background: #958976;
+      color: #1D2326;
+    }
+    #main div.popupItem {
+      padding: 10px;
+      border-top: 1px solid #DDDCC5;
+      border-bottom: 1px solid #958976;
+      font-weight: bold;
+    }
+    li {
+      border-top: 1px solid #DDDCC5;
+      border-bottom: 1px solid #958976;
+      padding: 3px 0;
     }
     .consumableList {
       overflow: auto;
-      max-height: 300px;
+      max-height: 400px;
+    }
+    .clickable {
+      cursor: pointer;
+    }
+    .clickable:active {
+      background: #611427;
+    }
+    .loginForm input {
+      border-radius: 2px;
+      padding: 3px;
+      border: 1px solid #bfbfbf;
+      box-sizing: border-box;
+    }
+    .loginForm input:focus {
+      border-color: rgb(97, 20, 39);
+      outline: none;
+      -webkit-transition: border-color 200ms;
     }
     </style>
     <script src="jquery-2.1.3.js"></script>
     <script src="popup.js"></script>
   </head>
   <body>
-    <div id="titleDiv"><span>ConsumIt</span></div>
+    <div id="titleDiv">
+      <div id="titleText">ConsumIt</div>
+      <div id="loginLogoutDiv" class="clickable"></div>
+      <div id="consumeLink" class="clickable"></div>
+      <div id="saveLink" class="clickable"></div>
+    </div>
    <!--- <div><span id="saveLink">Consume this page later</span></div>-->
     <div id="main"> </div>
     <!---<div><span id="clearLink">Clear all consumables (dev)</span></div>-->
