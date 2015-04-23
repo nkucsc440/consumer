@@ -364,8 +364,7 @@ var SessionManager = {
       success: function(data){
         chrome.runtime.sendMessage({
           type: 'topConsumables',
-          response: data,
-          consumptionId: consumptionId
+          response: data
         });
       }
     });
