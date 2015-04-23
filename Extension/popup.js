@@ -58,14 +58,17 @@ chrome.runtime.onMessage.addListener(function(msg, sender, cb){
   if(msg.type === 'update'){
     updateActionItems(true);
   }
+  else if (msg.type === 'deleteSuccess') {
+    $('#tabMine').click(); //doesn't work for some reason.
+  }
   else if (msg.type === 'loginSuccess') {
-    $('#tabMine').click();
+    $('#tabMine').click(); //doesn't work for some reason.
   }
   //used to be in show links
   else if(msg.type === 'consumptions'){
     var consumptions = msg.response.user._consumptions;
     var consumableTable = '<table>';
-    consumableTable += '<thead><tr><th>URL</th><th># of Times</th><th>Average</th></tr></thead>';
+    consumableTable += '<thead><tr><th>URL</th><th># of Times</th><th>Average</th><th></th></tr></thead>';
     //set listeners to links (for custom tab opening)
     //replicates an <a> with some more js added
     for (var i in consumptions) {
@@ -77,12 +80,13 @@ chrome.runtime.onMessage.addListener(function(msg, sender, cb){
   }
   else if (msg.type === 'topConsumables') {
     var consumables = msg.response.consumables;
-    var linkList = '<table>';
+    var consumableTable = '<table>';
+    consumableTable += '<thead><tr><th>URL</th><th># of Times</th><th>Average</th></tr></thead>';
     for (var i in consumables) {
-      linkList += generateConsumableListItem(consumables[i]);
+      consumableTable += generateConsumableListItem(consumables[i]);
     }
-    linkList += '</table>';
-    $('#tabContent').html(linkList);
+    consumableTable += '</table>';
+    $('#tabContent').html(consumableTable);
   }
 });
 
@@ -99,14 +103,19 @@ function generateConsumableListItem(consumable) {
   if (consumable.consumptionId) {
     tr += 'id="' + consumable.consumptionId + '" ';
   }
-  tr += 'class="consumption clickable" data-url="' + consumable.url +'">'
-    tr += '<td><div class="url">' + urlText + '</div></td>';
-    tr += '<td >'
+  tr += '>'
+    tr += '<td class="consumption clickable" data-url="' + consumable.url +'"><div class="url">' + urlText + '</div></td>';
+    tr += '<td class="consumption clickable" data-url="' + consumable.url +'">'
           + '<span class="consumptionStat">' + count + '</span>'
         + '</td>';
-    tr += '<td >'
+    tr += '<td class="consumption clickable" data-url="' + consumable.url +'">'
           + '<span class="consumptionStat">' + Math.trunc(avg / 1000) + '</span>' + 's'
         + '</td>';
+    if (consumable.consumptionId) {
+      tr += '<td >'
+            + '<span class="deleteConsumption clickable" data-consumptionid="'+consumable.consumptionId+'">' + 'X'
+          + '</td>';
+    }
   tr += '</tr>';
 
 
@@ -124,9 +133,11 @@ function generateConsumableListItem(consumable) {
 function beginConsumption(e) {
   var self = this;
   // use this to update with later
-  chrome.storage.local.set({
-    'currentConsumption': self.attributes.id.value
-  });
+  if (!!self.attributes.id) {
+    chrome.storage.local.set({
+      'currentConsumption': self.attributes.id.value
+    });
+  }
   link = 'http://' + $(self).data('url');
 
   chrome.tabs.create({
@@ -136,6 +147,14 @@ function beginConsumption(e) {
       type: 'startTimer',
       tab: tab
     });
+  });
+}
+
+function deleteConsumption(e) {
+  var self = this;
+  chrome.runtime.sendMessage({
+    type: 'deleteConsumption',
+    consumptionId: $(self).data('consumptionid')
   });
 }
 
@@ -234,6 +253,7 @@ function consumeLink(e) {
 document.addEventListener('DOMContentLoaded', function() {
   checkState();
   $('#tabContent').on('click', '.consumption', beginConsumption);
+  $('#tabContent').on('click', '.deleteConsumption', deleteConsumption);
   $('#tabContent').on('click', '#loginForm #loginBtn', login);
   $('#tabs').on('click', '#tabMine', showLinks);
   $('#tabs').on('click', '#tabTop', showLinks);

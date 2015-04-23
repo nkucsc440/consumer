@@ -108,6 +108,10 @@ chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
       //Get top n consumables
       SessionManager.getTopConsumables(10);
       break;
+    case 'deleteConsumption':
+      //Get top n consumables
+      SessionManager.deleteConsumption(msg.consumptionId);
+      break;
   }
 });
 
@@ -355,15 +359,32 @@ var SessionManager = {
       method: 'get',
       dataType: 'json',
       error: function(jqXHR, textStatus, errorThrown) {
-        console.log('Error getting top '+n+' consumptions: ' + errorThrown);
+        console.log('Error getting top ' + n + ' consumptions: ' + errorThrown);
       },
       success: function(data){
         chrome.runtime.sendMessage({
           type: 'topConsumables',
+          response: data,
+          consumptionId: consumptionId
+        });
+      }
+    });
+  },
+  deleteConsumption: function(consumptionId) {
+    $.ajax({
+      url: restServer + 'consumptions/' + consumptionId,
+      method: 'delete',
+      dataType: 'json',
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log('Error deleting consumption ' + consumptionId + ': ' + errorThrown);
+      },
+      success: function(data){
+        chrome.runtime.sendMessage({
+          type: 'deleteSuccess',
           response: data
         });
       }
-    })
+    });
   },
   getState: function(){
     return this.user !== 0;
