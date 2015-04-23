@@ -106,8 +106,7 @@ chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
       break;
     case 'getTopConsumables':
       //Get top n consumables
-      SessionManager.getTopConsumables(3);
-      // SessionManager.getTopConsumables(msg.n);
+      SessionManager.getTopConsumables(10);
       break;
   }
 });
@@ -208,6 +207,9 @@ var SessionManager = {
         SessionManager.user = response.user._id;//can't use this because cb is called outside of object
         chrome.runtime.sendMessage({
           type: 'update'
+        });
+        chrome.runtime.sendMessage({
+          type: 'loginSuccess'
         });
       },
       error: function(jqXHR, textStatus, errorThrown) {

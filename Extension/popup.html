@@ -7,14 +7,11 @@
     body {
       margin: 0px;
       padding: 0px;
-      /*text-align: center;*/
       font-family: sans-serif;
       width: 400px;
-
     }
     #titleDiv {
       background: #611427;
-      /*color: #EFECCA;*/
       cursor: initial;
       padding: 10px;
       color: #DDDCC5;
@@ -26,7 +23,7 @@
       float: left;
     }
     #titleDiv .clickable {
-      float:right;
+      float: right;
       padding: 5px;
       border-radius: 2px;
     }
@@ -39,39 +36,63 @@
     a {
       text-decoration: none;
     }
-    ul {
-      list-style-type: none;
-      margin: 0;
-      padding: 0;
-      background: #DDDCC5;
-    }
-    #main > div:hover {
-      background: #998D79;
-    }
-    #main > div:active {
-      background: #611427;
-    }
-    li:hover {
+    li.consumption:hover {
       background: #E3E2CA;
     }
-    #main {
+    #tabs {
       background: #958976;
       color: #1D2326;
+      min-height: 3em;
     }
-    #main div.popupItem {
-      padding: 10px;
-      border-top: 1px solid #DDDCC5;
-      border-bottom: 1px solid #958976;
+    #tabs .tab {
+      float: left;
+      padding: 11px;
+      border-right: 1px solid #958976;
       font-weight: bold;
     }
-    li {
-      border-top: 1px solid #DDDCC5;
-      border-bottom: 1px solid #958976;
-      padding: 3px 0;
+    #tabs .tab:hover {
+      background: #9E917D;
     }
-    .consumableList {
+    #tabs .tab:active {
+      background: #611427;
+    }
+    #tabs .tab.active {
+      background: #DDDCC5;
+    }
+    #tabs .tab.active:hover {
+      background: #E8E7CF;
+    }
+    #tabContent {
       overflow: auto;
       max-height: 400px;
+      margin: 0;
+      padding: 0;
+      background: #F2F1D8;
+    }
+    #tabContent table {
+      padding: 0 10px;
+      margin: 0;
+    	border-collapse: collapse;
+    	text-align: left;
+    	width: 100%;
+    }
+    #tabContent table td, #tabContent table th {
+    	padding: 3px 10px;
+    	border: 1px solid #ddd;
+    	color: #1D2326;
+    	/*font-size: 12px;*/
+    	/*font-weight: normal;*/
+    }
+    #tabContent table th {
+      font-weight: bold;
+      font-size: 1.25em;
+    }
+    #tabContent table tbody tr:hover {
+      background: #FCFBE1;
+    }
+    #tabContent table tbody td .consumptionStat {
+      font-weight: bold;
+      font-size: 2em;
     }
     .clickable {
       cursor: pointer;
@@ -79,14 +100,22 @@
     .clickable:active {
       background: #611427;
     }
-    .loginForm input {
+    #loginForm {
+      text-align: center;
+      margin: 10px;
+    }
+    #loginForm input {
+      margin-left: auto;
+      margin-right: auto;
+
       border-radius: 2px;
-      padding: 3px;
+      padding: 3px 10px;
+      margin: 2px;
       border: 1px solid #bfbfbf;
       box-sizing: border-box;
     }
-    .loginForm input:focus {
-      border-color: rgb(97, 20, 39);
+    #loginForm input:focus {
+      border-color: rgb(77, 144, 254);
       outline: none;
       -webkit-transition: border-color 200ms;
     }
@@ -101,8 +130,7 @@
       <div id="consumeLink" class="clickable"></div>
       <div id="saveLink" class="clickable"></div>
     </div>
-   <!--- <div><span id="saveLink">Consume this page later</span></div>-->
-    <div id="main"> </div>
-    <!---<div><span id="clearLink">Clear all consumables (dev)</span></div>-->
+    <div id="tabs"> </div>
+    <div id="tabContent"> </div>
   </body>
 </html>
