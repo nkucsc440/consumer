@@ -104,6 +104,11 @@ chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
       //Check if user logged in
       cb(SessionManager.getState());
       break;
+    case 'getTopConsumables':
+      //Get top n consumables
+      SessionManager.getTopConsumables(3);
+      // SessionManager.getTopConsumables(msg.n);
+      break;
   }
 });
 
@@ -341,6 +346,22 @@ var SessionManager = {
         });
       }
     });
+  },
+  getTopConsumables: function(n) {
+    $.ajax({
+      url: restServer + 'top/' + n,
+      method: 'get',
+      dataType: 'json',
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log('Error getting top '+n+' consumptions: ' + errorThrown);
+      },
+      success: function(data){
+        chrome.runtime.sendMessage({
+          type: 'topConsumables',
+          response: data
+        });
+      }
+    })
   },
   getState: function(){
     return this.user !== 0;

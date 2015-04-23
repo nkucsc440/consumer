@@ -1,24 +1,46 @@
 //No state information should be stored in the popup. UI only
 
-function toggleConsumablesViewLink(e) {
-  var showingLinks = !!$('#toggleConsumablesViewLink').data('showingLinks');
+function toggleMyConsumablesViewLink(e) {
+  var showingLinks = !!$('#toggleMyConsumablesViewLink').data('showingLinks');
   if (showingLinks) {
-    hideLinks();
+    hideMyLinks();
   } else {
-    showLinks();
+    showMyLinks();
   }
-  $('#toggleConsumablesViewLink').data('showingLinks', !showingLinks);
+  $('#toggleMyConsumablesViewLink').data('showingLinks', !showingLinks);
 }
 
-function hideLinks() {
-  $('#consumablesDiv').html('');
-  $('#toggleConsumablesViewLink').html('Show My Consumables');
+function hideMyLinks() {
+  $('#myConsumablesDiv').html('');
+  $('#toggleMyConsumablesViewLink').html('Show My Consumables');
 }
 
 //creates a list of all saved links
-function showLinks() {
+function showMyLinks() {
   chrome.runtime.sendMessage({
     type: 'getConsumptions'
+  });
+}
+
+function toggleTopConsumablesViewLink(e) {
+  var showingLinks = !!$('#toggleTopConsumablesViewLink').data('showingLinks');
+  if (showingLinks) {
+    hideTopLinks();
+  } else {
+    showTopLinks();
+  }
+  $('#toggleTopConsumablesViewLink').data('showingLinks', !showingLinks);
+}
+
+function hideTopLinks() {
+  $('#topConsumablesDiv').html('');
+  $('#toggleTopConsumablesViewLink').html('Show Top Consumables');
+}
+
+//creates a list of top links
+function showTopLinks() {
+  chrome.runtime.sendMessage({
+    type: 'getTopConsumables'
   });
 }
 
@@ -49,34 +71,48 @@ chrome.runtime.onMessage.addListener(function(msg, sender, cb){
     updateActionItems(true);
   }
   //used to be in show links
-  if(msg.type === 'consumptions'){
+  else if(msg.type === 'consumptions'){
     var consumptions = msg.response.user._consumptions;
     var linkList = '<ul>';
     //set listeners to links (for custom tab opening)
     //replicates an <a> with some more js added
     for (var i in consumptions) {
-      var consumption = consumptions[i];
-      var consumable = consumption._consumable;
-      linkList += '<li id="' + consumption._id + '" data-url="' + consumable.url + '" class="consumption">' + consumable.url + '<br>';
-      if (consumable.consumedCount && consumable.consumedCount > 0) {
-        linkList += 'Average Consume Time: ' + (consumable.averageConsumeTime / 1000) + 's<br>';
-        linkList += 'Consumed: ' + (consumable.consumedCount) + ' time' + (consumable.consumedCount == 1 ? '' : 's');
-      } else {
-        linkList += '<strong>Be the first to consume this! </strong>';
-      }
-      linkList += '</li>';
+      linkList += '<li id="' + consumptions[i]._id + '" ';
+      linkList += generateConsumableListItem(consumptions[i]._consumable);
     }
     linkList += '</ul>';
-    $('#consumablesDiv').html(linkList);
-    $('#toggleConsumablesViewLink').html('Hide Consumables');
+    $('#myConsumablesDiv').html(linkList);
+    $('#toggleMyConsumablesViewLink').html('Hide My Consumables');
+  }
+  else if (msg.type === 'topConsumables') {
+    var consumables = msg.response.consumables;
+    var linkList = '<ul>';
+    for (var i in consumables) {
+      linkList += '<li ';
+      linkList += generateConsumableListItem(consumables[i]);
+    }
+    linkList += '</ul>';
+    $('#topConsumablesDiv').html(linkList);
+    $('#toggleTopConsumablesViewLink').html('Hide Top Consumables');
   }
 });
+
+function generateConsumableListItem(consumable) {
+  listItem = 'data-url="' + consumable.url + '" class="consumption">' + consumable.url + '<br>';
+  if (consumable.consumedCount && consumable.consumedCount > 0) {
+    listItem += 'Average Consume Time: ' + (consumable.averageConsumeTime / 1000) + 's<br>';
+    listItem += 'Consumed: ' + (consumable.consumedCount) + ' time' + (consumable.consumedCount == 1 ? '' : 's');
+  } else {
+    listItem += '<strong>Be the first to consume this! </strong>';
+  }
+  return listItem += '</li>';
+}
 
 // add credentials to all ajax calls
 function login() {
   var username = $('#username').val();
   var password = $('#password').val();
-  
+
   chrome.runtime.sendMessage({
     type: 'login',
     user: username,
@@ -150,11 +186,18 @@ function updateActionItems(userState) {
         } else {
           $('#main').append('<div class="popupItem"><span id="saveLink">Consume this page later</span></div>');
         }
+      }
 
-        //////////// Show Consumables btn
-        $('#main').append('<div class="popupItem"><span id="toggleConsumablesViewLink">Show My Consumables</span></div>');
-        $('#main').append('<div id="consumablesDiv"></div>');
+      $('#main').append('<div class="popupItem"><span id="toggleTopConsumablesViewLink">Show Top Consumables</span></div>');
+      $('#main').append('<div id="topConsumablesDiv" class="consumableList"></div>');
 
+      if (userState) {
+        //////////// Show My Consumables btn
+        $('#main').append('<div class="popupItem"><span id="toggleMyConsumablesViewLink">Show My Consumables</span></div>');
+        $('#main').append('<div id="myConsumablesDiv" class="consumableList"></div>');
+      }
+
+      if (userState) {
         //////////// Logout btn
         $('#main').append('<div class="popupItem" id="loginLogoutDiv"><span id="loginLogoutLink">Logout</span></div>');
         $('#loginLogoutLink').on('click', logoutUser);
@@ -178,7 +221,8 @@ function checkState(){
 //very messy because listeners must be added after page is modified
 document.addEventListener('DOMContentLoaded', function() {
   checkState();
-  $('#main').on('click', '#toggleConsumablesViewLink', toggleConsumablesViewLink);
+  $('#main').on('click', '#toggleMyConsumablesViewLink', toggleMyConsumablesViewLink);
+  $('#main').on('click', '#toggleTopConsumablesViewLink', toggleTopConsumablesViewLink);
   $('#main').on('click', '#saveLink', saveLinks);
   $('#main').on('click', '#consumeLink', consumeLink);
   $('#main').on('click', '.consumption', beginConsumption);
