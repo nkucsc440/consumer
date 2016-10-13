@@ -1,0 +1,8 @@
+Congratulations! You almost finished the whole project already in the Iteration 2. You won 24 out of 24 in the cross-group evaluation system. In your personal reviews, you two can see the contributions from each other.
+However, you should pay attention to the following things:
+1.	Design documents include class diagrams and communication diagrams, not just listing all the files and functions. (10) The class diagram only include two objects, consumable list and user account. But you definitely implemented more classes, such as “user”, “consumption”, “consumable”, “auth”. Please think about how to describe your project using UML tools.
+2.	In this iteration, the team must add a 1-2 page writeup explaining the reasons for designing each diagram. The explanation must include which GRASP patterns are used and why. I would expect the discussion on class level or some comparison. 
+3.	You use 3 “projects” for your “consumit”.  It is really nice that you added the “readme” under each project. However, it is still hard to track what is the relations among these 3 projects. (5)
+4.	Add all action items in the Iteration Plan to the GitHub repository's issue tracker. (10pts)
+
+10 bonus points for the top one ranking from the cross-group review. We are expecting your plugin to be announced in the market. 
